@@ -1494,6 +1494,7 @@ class TrafficManager(threading.Thread):
         cur.execute(get_soonest_action_query)
         soonest_action = cur.fetchone()
         soonest_time = soonest_action['time']
+        is_using_realtime = False
 
         #create people controller and append people there
         '''for i in range(config.NUMBER_PEOPLE_CONTROLLERS):
@@ -1513,7 +1514,7 @@ class TrafficManager(threading.Thread):
         sumo_command += ' --remote-port ' + str(self.sumo_port)
         p = Process(target=os.system, args=(sumo_command,))
         p.start()
-        #wait 5 seconds to ensure traci is running
+        #wait 2 seconds to ensure traci is running
         time.sleep(2)
 
         # start SUMO controller and go to soonest action
@@ -1521,11 +1522,19 @@ class TrafficManager(threading.Thread):
 
         #go to soonest step
         self.current_step = 0
-        #while (self.current_step < soonest_time-5):
-            #self.current_step += 1
-            #traci.simulationStep()
+        if (config.USE_REAL_TIME):
+            current_time = datetime.datetime.now()
+            current_time_in_second = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
+            if current_time_in_second < soonest_time:
+                traci.simulationStep((current_time_in_second - 5) * 1000)
+                self.current_step = current_time_in_second - 5
+                self.simulating_time = (current_time_in_second - 5) * 1000
+            else:
+                traci.simulationStep((soonest_time - 5) * 1000)
+                self.current_step = soonest_time - 5
+                self.simulating_time = (soonest_time - 5) * 1000
 
-        if soonest_time < config.TIME_START:
+        elif soonest_time < config.TIME_START:
             traci.simulationStep((soonest_time-5)*1000)
             self.current_step = soonest_time-5
             self.simulating_time = (soonest_time-5)*1000
@@ -1534,30 +1543,33 @@ class TrafficManager(threading.Thread):
             self.current_step = config.TIME_START-5
             self.simulating_time = (config.TIME_START-5)*1000
 
-
-        real_life_time = datetime.datetime.now().time()
-        real_life_time_second = real_life_time.hour*3600+real_life_time.minute*60+real_life_time.second
-
         '''
         Control people every 2 seconds
         In the mean time, keep accelerate
         '''
         duration = 10
+        refresh_rate = config.REFRESH_RATE
         while (True):
 
             total_time = 0
-            refresh_rate = 1
-            refresh_rate = config.REFRESH_RATE
             simulation_time = float(self.simulating_time)/1000
-            if simulation_time < real_life_time_second:
-                refresh_rate = 128
-                #logger.error('128:' + str(simulation_time) + ':' + str(real_life_time_second))
-            else:
-                refresh_rate = config.REFRESH_RATE
-                #logger.error('config.REFRESH_RATE' + ':' + str(config.REFRESH_RATE) + ':' + str(simulation_time))
-
-
             while total_time < 20:
+                if (config.USE_REAL_TIME):
+                    if (not is_using_realtime):
+                        current_time = datetime.datetime.now()
+                        current_time_in_second = current_time.hour*3600 + current_time.minute*60 + current_time.second
+                        if (self.simulating_time/1000 < current_time_in_second-5000):
+                            refresh_rate = 128
+                        elif (self.simulating_time/1000 < current_time_in_second):
+                            refresh_rate = (int)((current_time_in_second - self.simulating_time/1000)/2)
+                            if (refresh_rate > 128):
+                                refresh_rate = 128
+                            elif (refresh_rate <= config.REFRESH_RATE):
+                                refresh_rate = config.REFRESH_RATE
+                                is_using_realtime = True
+                        else:
+                            refresh_rate = config.REFRESH_RATE
+                            is_using_realtime = True
 
                 start = time.time()
                 #time.sleep(1/config.REFRESH_RATE)
