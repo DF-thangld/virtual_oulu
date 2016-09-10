@@ -1,0 +1,109 @@
+#gui {
+    position:absolute;
+    left: 0px;
+    top: 0px;
+}
+
+#route_buttons_container{
+    position: absolute;
+    width: 170px;
+    height: 100%;
+    overflow-y: auto;
+    top: 0;
+    bottom: 0;
+}
+
+#sidebar{
+    position: fixed;
+    width: 240px;
+    height: 100%;
+    overflow-y: auto;
+    top: 0;
+    bottom: 0;
+    z-index: 10;
+}
+
+#route_buttons_container button{
+    width: 50px;
+}
+
+#sidebar_button{
+    float: right;
+    width: 60px;
+}
+#helpdiv{
+    position:fixed;
+    top:0px;
+    left:0px;
+    width:100%;
+   
+
+}
+#helpdiv button{
+    display:block;
+    width: 100px;
+    margin: 0px auto 0px auto;
+}
+
+#helpbar{
+    position: fixed;
+
+    top: -2000px;
+    z-index: 100;
+    
+    margin-left: 20%;
+    margin-right: 20%;
+
+    background-color:#e6e6e6;
+    
+    padding:5%;
+}
+#helpbar h2{
+    text-align:center;
+}
+
+
+#stop_timetable_container{
+    position: absolute;
+    width:100%;
+
+}
+
+#stop_name_header{
+    text-align: center;
+}
+
+#sidebar_right{
+    position: fixed;
+    width: 240px;
+    overflow-y: auto;
+    top: 0;
+    bottom: 0;
+
+    right: -250px;
+    border: 5px solid black;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.4);
+    font-family: "Verdana", "Geneva", "sans-serif";
+}
+
+#stop_timetables_table{
+    width:100%;
+    border:0px;
+    border-collapse:collapse;
+    color: white;
+    font-family: "Verdana", "Geneva", "sans-serif";
+    font-weight: bold;
+}
+
+#stop_timetables_table td{
+    width: 50%;
+    text-align:center;
+}
+#stop_timetables_table tr:nth-child(even){
+}
+
+#stop_timetables_table tr:nth-child(odd){
+    background-color: rgba(0, 0, 0, 0.4);
+
+}

@@ -1,0 +1,25 @@
+
+function flipFaces(geometry) {
+    //http://stackoverflow.com/questions/21462851/flip-normals-in-three-js-on-sphere
+    for ( var i = 0; i < geometry.faces.length; i ++ ) {
+
+        var face = geometry.faces[ i ];
+        var temp = face.a;
+        face.a = face.c;
+        face.c = temp;
+
+    }
+
+    geometry.computeFaceNormals();
+    //geometry.computeVertexNormals();
+
+    var faceVertexUvs = geometry.faceVertexUvs[ 0 ];
+    for ( var i = 0; i < faceVertexUvs.length; i ++ ) {
+
+        var temp = faceVertexUvs[ i ][ 0 ];
+        faceVertexUvs[ i ][ 0 ] = faceVertexUvs[ i ][ 2 ];
+        faceVertexUvs[ i ][ 2 ] = temp;
+
+    }
+
+}

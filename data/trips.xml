@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<trips>
+	<!-- define a trip to use in DuaRouter
+        id: id of the trip
+        depart: depart time
+		from: starting edge id
+		to: destination edge id
+    -->
+	<vType id="SUMO_DEFAULT_TYPE" accel="0.8" decel="4.5" sigma="0" length="3" minGap="2" maxSpeed="70"/>
+	<trip id="1625993_25" depart="25" from="-100157190#3" to="-100771406#0" type="SUMO_DEFAULT_TYPE"/>
+	<trip id="1542480_35" depart="35" from="-100771467"   to="-23973475#5" type="SUMO_DEFAULT_TYPE"/>
+</trips>

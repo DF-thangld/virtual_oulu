@@ -1,0 +1,108 @@
+<html>
+	<head>
+		<script src="/static/jquery-2.1.4.min.js"></script>
+		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&sensor=false"></script>
+		<script language="javascript">
+			var geocoder;
+			var time = 0;
+			$(function(){
+				geocoder = new google.maps.Geocoder();
+				window.setInterval(function(){
+					$.ajax({
+						type: "GET",
+						url: "/workplaces",
+						cache: false,
+						dataType: "json",
+						success: function(json) 
+						{
+							$(json).each(function( index, element ) {
+								var id = element.id;
+								var address = element.address;
+								var mail_address = element.mail_address;
+								var full_address = address + ', ' + mail_address;
+								
+								geocoder.geocode( { 'address': full_address}, function(results, status) {
+									time++;
+									if (status == google.maps.GeocoderStatus.OK)
+									{
+										lat = results[0].geometry.location.A;
+										lon = results[0].geometry.location.F;
+										$.ajax({
+											type: "POST",
+											url: "/update_workplace",
+											data: JSON.stringify({ id : id, lat:lat, lon:lon}),
+											cache: false,
+											dataType: "json",
+											success: function(new_json) 
+											{
+												console.log(new_json);
+											}
+										});
+									}
+									else if (status == 'ZERO_RESULTS')
+									{
+										$.ajax({
+											type: "POST",
+											url: "/workplace_not_found",
+											data: JSON.stringify({ id : id}),
+											cache: false,
+											dataType: "json",
+											success: function(new_json) 
+											{
+												console.log(new_json);
+											}
+										});
+									}
+								});
+							});
+							/*$(xml).find('place').each(function()
+							{
+								//console.log($(this));
+								var company_id = $(this).find("company_id").text();
+								var address = $(this).find("address").text() + ', Oulu, Finland';
+								
+								geocoder.geocode( { 'address': address + ',Oulu, Finland'}, function(results, status) {
+									if (status == google.maps.GeocoderStatus.OK)
+									{
+										lat = results[0].geometry.location.A;
+										lon = results[0].geometry.location.F;
+										$.ajax({
+											type: "POST",
+											url: "/update_workplace",
+											cache: false,
+											dataType: "json",
+											success: function(json) 
+											{
+												console.log(address + ":" + lat + "-" + lon);
+											}
+										});
+									}
+								});
+							});*/
+						}
+					});
+					if (time >= 50)
+						location.reload();
+				}, 5000);
+				
+			});
+		</script>
+		<style type="text/css">
+			img.wp-smiley,
+			img.emoji {
+				display: inline !important;
+				border: none !important;
+				box-shadow: none !important;
+				height: 1em !important;
+				width: 1em !important;
+				margin: 0 .07em !important;
+				vertical-align: -0.1em !important;
+				background: none !important;
+				padding: 0 !important;
+			}
+		</style>
+	</head>
+	<body>
+		
+	</body>
+</html>

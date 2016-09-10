@@ -1,0 +1,42 @@
+window.addEventListener( 'click', onMC, false );
+
+function onMC( e ) {
+        var mouseVector = new THREE.Vector3();
+        projector = new THREE.Projector();
+        var container = document.getElementsByTagName('body')[0];
+        containerWidth = container.clientWidth;
+        containerHeight = container.clientHeight;
+		
+     
+        var camera_realpos = new THREE.Vector3();
+        cameraroot.updateMatrixWorld();
+        camera_realpos.setFromMatrixPosition( camera.matrixWorld );
+
+        var raycaster = new THREE.Raycaster();
+
+        mouseVector.set( ( e.clientX / containerWidth ) * 2 - 1, - ( e.clientY / containerHeight ) * 2 + 1, 0.5 ); // z = 0.5 important!
+
+        mouseVector.unproject( camera );
+
+        raycaster.set( camera_realpos, mouseVector.sub( camera_realpos ).normalize() );
+
+        var intersects = raycaster.intersectObjects(stops.children);
+        
+        stops.children.forEach(function( cube ) {
+			cube.material.color.setRGB( 1, 1, 1 );
+		});
+        
+        //Open sidebar when stop selected
+        if(intersects.length != 0){
+            showRightSidebar();
+            sid = intersects[0].object.userData.stop_id;
+            snam = intersects[0].object.userData.stop_name;
+            intersects[0].object.material = intersects[0].object.material.clone();
+            intersects[0].object.material.color.setRGB( 0, 1, 1 );
+            updateSidebarInfo(sid, snam);
+               
+        }else{
+            hideRightSidebar();
+        }
+				
+	}

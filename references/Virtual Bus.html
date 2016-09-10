@@ -1,0 +1,55 @@
+
+<!-- saved from url=(0025)http://vm0109.virtues.fi/ -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>Virtual Bus</title>
+        
+        <script src="./Virtual Bus_files/jquery-1.11.3.min.js.download"></script>
+        <script src="./Virtual Bus_files/proj4.js.download"></script>
+        <script src="./Virtual Bus_files/three.min.js.download"></script>
+        <script src="./Virtual Bus_files/OrbitControls.js.download"></script>
+        <script src="./Virtual Bus_files/CamControl.js.download"></script>
+        <script src="./Virtual Bus_files/coordinate_conversions.js.download"></script>
+        <script src="./Virtual Bus_files/map_loading.js.download"></script>
+        <script src="./Virtual Bus_files/route_draw.js.download"></script>
+        <script src="./Virtual Bus_files/data_getter.js.download"></script>
+        <script src="./Virtual Bus_files/Bus.js.download"></script>
+        <script src="./Virtual Bus_files/buildings_draw.js.download"></script>
+        <script src="./Virtual Bus_files/stop_picker.js.download"></script>
+        <link rel="stylesheet" type="text/css" href="./Virtual Bus_files/style.css">
+        <script src="./Virtual Bus_files/gui_loader.js.download"></script>
+        <script src="./Virtual Bus_files/fixeduv.js.download"></script>
+        <script src="./Virtual Bus_files/faceflipper.js.download"></script>
+        <link rel="stylesheet" type="text/css" href="./Virtual Bus_files/gui_style.css">
+        
+    </head>
+    <body>
+        <script src="./Virtual Bus_files/virtual-bus.js.download"></script><canvas width="1366" height="616" style="width: 1366px; height: 616px;"></canvas>       
+        <div id="gui"><div id="sidebar" style="left: 0px;">
+<div id="route_buttons_container"><button onclick="showRouteById(this,&quot;1&quot;)">1</button><button onclick="showRouteById(this,&quot;2&quot;)">2</button><button onclick="showRouteById(this,&quot;3&quot;)">3</button><button onclick="showRouteById(this,&quot;4&quot;)">4</button><button onclick="showRouteById(this,&quot;7&quot;)">7</button><button onclick="showRouteById(this,&quot;8&quot;)">8</button><button onclick="showRouteById(this,&quot;9&quot;)">9</button><button onclick="showRouteById(this,&quot;10&quot;)">10</button><button onclick="showRouteById(this,&quot;11&quot;)">11</button><button onclick="showRouteById(this,&quot;14&quot;)">14</button><button onclick="showRouteById(this,&quot;15&quot;)">15</button><button onclick="showRouteById(this,&quot;16&quot;)">16</button><button onclick="showRouteById(this,&quot;17&quot;)">17</button><button onclick="showRouteById(this,&quot;20&quot;)">20</button><button onclick="showRouteById(this,&quot;21&quot;)">21</button><button onclick="showRouteById(this,&quot;22&quot;)">22</button><button onclick="showRouteById(this,&quot;23&quot;)">23</button><button onclick="showRouteById(this,&quot;25&quot;)">25</button><button onclick="showRouteById(this,&quot;26&quot;)">26</button><button onclick="showRouteById(this,&quot;29&quot;)">29</button><button onclick="showRouteById(this,&quot;34&quot;)">34</button><button onclick="showRouteById(this,&quot;35&quot;)">35</button><button onclick="showRouteById(this,&quot;36&quot;)">36</button><button onclick="showRouteById(this,&quot;38&quot;)">38</button><button onclick="showRouteById(this,&quot;39&quot;)">39</button><button onclick="showRouteById(this,&quot;40&quot;)">40</button><button onclick="showRouteById(this,&quot;41&quot;)">41</button><button onclick="showRouteById(this,&quot;42&quot;)">42</button><button onclick="showRouteById(this,&quot;44&quot;)">44</button><button onclick="showRouteById(this,&quot;51&quot;)">51</button><button onclick="showRouteById(this,&quot;52&quot;)">52</button><button onclick="showRouteById(this,&quot;53&quot;)">53</button><button onclick="showRouteById(this,&quot;54&quot;)">54</button><button onclick="showRouteById(this,&quot;56&quot;)">56</button><button onclick="showRouteById(this,&quot;57&quot;)">57</button><button onclick="showRouteById(this,&quot;58&quot;)">58</button><button onclick="showRouteById(this,&quot;59&quot;)">59</button><button onclick="showRouteById(this,&quot;71&quot;)">7N</button><button onclick="showRouteById(this,&quot;100&quot;)">A</button><button onclick="showRouteById(this,&quot;101&quot;)">B</button><button onclick="showRouteById(this,&quot;102&quot;)">C</button><button onclick="showRouteById(this,&quot;103&quot;)">BK</button><button onclick="showRouteById(this,&quot;151&quot;)">15N</button><button onclick="showRouteById(this,&quot;201&quot;)">20B</button><button onclick="showRouteById(this,&quot;202&quot;)">20K</button><button onclick="showRouteById(this,&quot;203&quot;)">20N</button><button onclick="showRouteById(this,&quot;211&quot;)">21</button><button onclick="showRouteById(this,&quot;221&quot;)">2N</button><button onclick="showRouteById(this,&quot;231&quot;)">23A</button><button onclick="showRouteById(this,&quot;232&quot;)">23AT</button><button onclick="showRouteById(this,&quot;233&quot;)">23K</button><button onclick="showRouteById(this,&quot;234&quot;)">23T</button><button onclick="showRouteById(this,&quot;235&quot;)">23S</button><button onclick="showRouteById(this,&quot;236&quot;)">23ST</button><button onclick="showRouteById(this,&quot;261&quot;)">26</button><button onclick="showRouteById(this,&quot;291&quot;)">29AM</button><button onclick="showRouteById(this,&quot;292&quot;)">29M</button><button onclick="showRouteById(this,&quot;294&quot;)">29P</button><button onclick="showRouteById(this,&quot;351&quot;)">35K</button><button onclick="showRouteById(this,&quot;352&quot;)">35N</button><button onclick="showRouteById(this,&quot;361&quot;)">36</button><button onclick="showRouteById(this,&quot;381&quot;)">38A</button><button onclick="showRouteById(this,&quot;382&quot;)">38AB</button><button onclick="showRouteById(this,&quot;383&quot;)">38B</button><button onclick="showRouteById(this,&quot;384&quot;)">38BJ</button><button onclick="showRouteById(this,&quot;385&quot;)">38J</button><button onclick="showRouteById(this,&quot;386&quot;)">38Y</button><button onclick="showRouteById(this,&quot;387&quot;)">38A</button><button onclick="showRouteById(this,&quot;401&quot;)">40K</button><button onclick="showRouteById(this,&quot;402&quot;)">40A</button><button onclick="showRouteById(this,&quot;403&quot;)">40V</button><button onclick="showRouteById(this,&quot;411&quot;)">41A</button><button onclick="showRouteById(this,&quot;412&quot;)">41K</button><button onclick="showRouteById(this,&quot;441&quot;)">4A</button><button onclick="showRouteById(this,&quot;442&quot;)">4N</button><button onclick="showRouteById(this,&quot;521&quot;)">52V</button><button onclick="showRouteById(this,&quot;531&quot;)">53K</button><button onclick="showRouteById(this,&quot;532&quot;)">53R</button><button onclick="showRouteById(this,&quot;533&quot;)">53LK</button><button onclick="showRouteById(this,&quot;562&quot;)">56K</button><button onclick="showRouteById(this,&quot;564&quot;)">56BM</button><button onclick="showRouteById(this,&quot;566&quot;)">56KM</button><button onclick="showRouteById(this,&quot;567&quot;)">56SK</button><button onclick="showRouteById(this,&quot;581&quot;)">58V</button><button onclick="showRouteById(this,&quot;582&quot;)">58B</button><button onclick="showRouteById(this,&quot;591&quot;)">59S</button><button onclick="showRouteById(this,&quot;592&quot;)">59V</button><button onclick="showRouteById(this,&quot;882&quot;)">8B</button><button onclick="showRouteById(this,&quot;991&quot;)">9V</button><button onclick="showRouteById(this,&quot;992&quot;)">9VB</button><button onclick="showRouteById(this,&quot;993&quot;)">9B</button><button onclick="showRouteById(this,&quot;9026&quot;)">94</button><button onclick="showRouteById(this,&quot;9027&quot;)">93</button></div>
+<button id="sidebar_button" onclick="showOrHideSidebar()">Routes</button>
+</div>
+
+<div id="helpdiv">
+<button id="help_button" onclick="showHelp()">Help</button>
+</div>
+<div id="sidebar_right" style="right: -250px;">
+<div id="stop_timetable_container">
+<h3 id="stop_name_header"></h3>
+<table id="stop_timetables_table"></table>
+</div>
+</div>
+<div id="helpbar" onclick="hideHelp()" style="top: -2000px;">
+        <h2>Help</h2>   
+        <p>Hold and drag first mouse button to move your location on map</p>
+        <p>Hold and drag second mouse button to turn camera</p>
+        <p>Use mouse wheel to zoom camera</p>
+        <p>Select route on left sidebar to show route</p>
+        <p>Select bus stop on map by clicking it to show timetable of bus stop</p>
+        <p>Click this window to hide it</p>
+</div>
+
+</div>
+    
+
+
+</body></html>

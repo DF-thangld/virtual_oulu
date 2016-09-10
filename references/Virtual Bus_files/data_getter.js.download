@@ -1,0 +1,292 @@
+var BASE_URL = "http://vm0109.virtues.fi/"
+var SHAPES_URL = BASE_URL + "api/gtfs/shape/";
+var TRIPS_URL = BASE_URL + "api/gtfs/trips";
+var ROUTES_URL = BASE_URL + "api/gtfs/route";
+//var VEHICLES_URL = BASE_URL + "/siri/vehicle";
+//var VEHICLES_URL = "http://data.itsfactory.fi/siriaccess/vm/json";
+//var VEHICLES_URL = "http://92.62.36.215/RTIX/vehicle-position/text";
+var VEHICLES_URL = BASE_URL + "vehicle-positions";
+
+//List of available URLs: http://wiki.openstreetmap.org/wiki/Overpass_API
+var OVERPASS_URL = "http://overpass.osm.rambler.ru/cgi/interpreter?data=%5Bout:json%5D;"
+//var OVERPASS_URL = "http://api.openstreetmap.fr/oapi/interpreter?data=%5Bout:json%5D;"
+//var OVERPASS_URL = "http://overpass-api.de/api/interpreter?data=%5Bout:json%5D;"
+
+
+var STOPS_URL = BASE_URL + "api/gtfs/stops/route_id/";
+
+var STOPS_TIMETABLES_BY_STOP_URL = BASE_URL + "api/gtfs/stop_times/stop_id/";
+
+var CALENDAR_DATES_SERVICE_BY_DATE_URL = BASE_URL + "api/gtfs/calendar_dates/date/";
+
+var CALENDAR_SERVICE_BY_DATE_URL = BASE_URL + "api/gtfs/calendar/date/";
+
+var trips = null;
+var vehicles = null;
+var routes = null;
+
+var todayServices = [];
+
+var buildingRequest = null;
+var forestRequest = null;
+var plantRequest = null;
+
+var getVehicles = function() {
+    //Fetches the real time data for the buses and saves it in the vehicles variable.
+    $.getJSON( VEHICLES_URL, function( data ) {
+        vehicles = data.entity;
+    });
+}
+
+
+//Remove route if it exists
+function removeRoute(route_id){
+    var rvalue = false;
+    var i = routesPO.children.length;
+    
+    for(var i = 0; i < routesPO.children.length; i++){
+        //console.log(routesPO.children[i].userData.associated_route);
+        
+        if(routesPO.children[i].userData.associated_route == route_id){
+            routesPO.remove(routesPO.children[i]);
+            rvalue = true;
+        }
+        
+    }
+
+    return rvalue;
+
+}
+
+//Remove stops if exists
+function removeStops(route_id){
+    var rvalue = false;
+    
+    var i = stops.children.length;
+    
+    for(var i = stops.children.length -1; i >= 0; i--){
+
+        if(stops.children[i].userData.associated_route == route_id){
+            stops.remove(stops.children[i]);
+            rvalue = true;
+        }
+        
+    }
+
+    return rvalue;
+
+}
+
+var getShapeAndDraw = function(route_id, direction) {
+    //Gets the data and calls drawRoute
+    if(removeRoute(route_id)){
+        return false;
+    }
+    
+    var shape_id = getShapeId(route_id, direction);
+    $.getJSON( SHAPES_URL+shape_id, function( data ) {
+        drawRoute(data,route_id);
+    });
+    
+    return true;
+}
+
+var getStopsAndDraw = function(route_id, direction){
+    if(removeStops(route_id)){
+        return;
+    }
+
+    $.getJSON( STOPS_URL+route_id, function( data ) {
+        var meshes = drawStops(data, route_id);
+    });
+
+}
+/*
+*/
+var getTrips = function() {
+    //Gets all trips and saves them into the variable trips.
+    $.getJSON( TRIPS_URL, function( data ) {
+        trips = data;
+    });
+}
+
+var getCurrentFormattedDate = function(){
+    var d = new Date();
+    var curr_date = d.getDate();
+    
+    if(curr_date < 10){
+        curr_date = "0" + curr_date.toString();
+    }
+    
+    var curr_month = d.getMonth();
+    curr_month++;
+    
+    if(curr_month < 10){
+        curr_month = "0" + curr_month.toString();
+    }
+    
+    var curr_year = d.getFullYear();
+    return curr_year.toString() + curr_month.toString() + curr_date.toString();
+}
+
+var getRouteShortNameById = function(rid){
+    for( var i=0; i<routes.length; i++ ) {
+        var r = routes[i];
+        if (r.route_id == rid) {
+            return r.route_short_name;
+        }
+    }
+}
+
+var getTodayServices = function() {
+    //Gets all trips and saves them into the variable trips.
+    d = getCurrentFormattedDate();
+    $.getJSON( CALENDAR_SERVICE_BY_DATE_URL + d, function( data ) {
+        //todayServices = data;
+        
+        for( var i=0; i<data.length; i++ ) {
+            var d = data[i];
+            todayServices.push(d.service_id);
+        }
+        
+        getTodayServiceExceptions();
+    });
+}
+
+var getTodayServiceExceptions = function() {
+    //Gets all trips and saves them into the variable trips.
+    d = getCurrentFormattedDate();
+    $.getJSON( CALENDAR_DATES_SERVICE_BY_DATE_URL + d, function( data ) {
+        //todayServices = data;
+        for( var i=0; i<data.length; i++ ) {
+            var d = data[i];
+            
+            if(d.exception_type == "1"){
+                //add service
+                if($.inArray(d.service_id, todayServices) !== -1){
+                    
+                }else{
+                    todayServices.push(d.service_id);
+                    console.log("serviceadded " + d.service_id);
+                }
+            }else if(d.exception_type == "2"){
+                //delete service
+                var index = $.inArray(d.service_id, todayServices);
+                //if(index !== -1){
+                if (index > -1) {
+                    todayServices.splice(index, 1);
+                    console.log("serviceremoved " + d.service_id);
+                }
+                //}
+            }
+        }
+        
+        
+    });
+}
+
+var getStopTimetablesById = function(stopid) {
+    //gets timetables of buses by stop id
+    $.getJSON( STOPS_TIMETABLES_BY_STOP_URL + stopid, function( data ) {
+        insertTimetableToSidebar(data);
+    });
+}
+
+var getRouteByTrip = function(tid){
+    for( var i=0; i<trips.length; i++ ) {
+        var trip = trips[i];
+        if (trip.trip_id == tid) {
+            return trip.route_id;
+        }
+    }
+}
+
+var getTripServiceById = function(tid){
+    for( var i=0; i<trips.length; i++ ) {
+        var trip = trips[i];
+        if (trip.trip_id == tid) {
+            return trip.service_id;
+        }
+    }
+
+}
+
+var getRoutes = function() {
+    //Gets all routes and saves them into the variable routes.
+    $.getJSON( ROUTES_URL, function( data ) {
+        routes = data;
+    });
+}
+
+var getShapeId = function(route_id,direction) {
+    //Gets a shape id for a trip that has route_id and direction (true/false).
+    for( var i=0; i<trips.length; i++ ) {
+        var trip = trips[i];
+        if (trip.route_id == route_id && trip.direction_id == direction) {
+            return trip.shape_id;
+        }
+    }
+}
+
+var getBuildingsAndDraw = function(lat1, lon1, lat2, lon2) {
+   //Gets the buildings in a bounding box and draws them
+   
+   //Creating the query
+   var boundingbox = ""+lat1+","+lon1+","+lat2+","+lon2;
+   var query = "( way [\"building\"] ("+boundingbox+"); rel [\"building\"] ("+boundingbox+"); way [\"building:part\"] ("+boundingbox+"); rel [\"building:part\"] ("+boundingbox+"); ); (._;>;); out meta;";
+   //var query = "( rel [\"amenity\"=\"university\"] ("+boundingbox+"); ); (._;>;); out meta;";
+   //Encoding ASCII
+   query = encodeURIComponent(query);
+    
+    if (buildingRequest != null) {
+        //Stopping any earlier request, for example if the camera has moved.
+        buildingRequest.abort();
+    }
+   
+   buildingRequest = $.getJSON( OVERPASS_URL+query, function( data ) {
+        drawBuildings(data);
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) { if (textStatus != 'abort') {getBuildingsAndDraw(lat1,lon1,lat2,lon2)} });
+   
+}
+
+var getForestsAndDraw = function(lat1, lon1, lat2, lon2) {
+   //Gets the forests in a bounding box and draws them
+   
+   //Creating the query
+   var boundingbox = ""+lat1+","+lon1+","+lat2+","+lon2;
+   var query = "( way [\"landuse\"=\"forest\"] ("+boundingbox+"); rel [\"landuse\"=\"forest\"] ("+boundingbox+"); way [\"natural\"=\"wood\"] ("+boundingbox+"); rel [\"natural\"=\"wood\"] ("+boundingbox+"); ); (._;>;); out meta;";
+   //Encoding ASCII
+   query = encodeURIComponent(query);
+    
+    if (forestRequest != null) {
+        //Stopping any earlier request, for example if the camera has moved.
+        forestRequest.abort();
+    }
+   
+   forestRequest = $.getJSON( OVERPASS_URL+query, function( data ) {
+        drawForests(data);
+    })
+   .fail(function(jqXHR, textStatus, errorThrown) { if (textStatus != 'abort') {getForestsAndDraw(lat1,lon1,lat2,lon2)} });
+}
+
+var getPlantsAndDraw = function(lat1, lon1, lat2, lon2) {
+   //Gets the plant areas in a bounding box and draws them
+   
+   //Creating the query
+   var boundingbox = ""+lat1+","+lon1+","+lat2+","+lon2;
+   var query = "( way [\"natural\"=\"scrub\"] ("+boundingbox+"); rel [\"natural\"=\"scrub\"] ("+boundingbox+"); way [\"landuse\"=\"meadow\"] ("+boundingbox+"); rel [\"landuse\"=\"meadow\"] ("+boundingbox+"); way [\"leisure\"=\"park\"] ("+boundingbox+"); rel [\"leisure\"=\"park\"] ("+boundingbox+"); way [\"landuse\"=\"grass\"] ("+boundingbox+"); rel [\"landuse\"=\"grass\"] ("+boundingbox+");); (._;>;); out meta;";
+   //Encoding ASCII
+   query = encodeURIComponent(query);
+    
+    if (plantRequest != null) {
+        //Stopping any earlier request, for example if the camera has moved.
+        plantRequest.abort();
+    }
+   
+   plantRequest = $.getJSON( OVERPASS_URL+query, function( data ) {
+        drawPlants(data);
+    })
+   .fail(function(jqXHR, textStatus, errorThrown) { if (textStatus != 'abort') {getPlantsAndDraw(lat1,lon1,lat2,lon2)} });
+}
+    

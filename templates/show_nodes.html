@@ -1,0 +1,109 @@
+<html>
+	<head>
+		<title>Oulu Traffic Simulation</title>
+		<script src="{{ url_for('static', filename='jquery-2.1.4.min.js') }}"></script>
+		<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false" ></script>
+		<script>
+		var marker = null;
+		var map = null;
+		var markers = [];
+		var nodes = {};
+		
+		var lines = [];
+		
+		function initialize() {
+		  var mapProp = {
+		    center:new google.maps.LatLng(65.007234, 25.482090),
+		    zoom:12,
+		    mapTypeId:google.maps.MapTypeId.ROADMAP
+		  };
+		  map=new google.maps.Map(document.getElementById("map_area"),mapProp);
+		}
+		google.maps.event.addDomListener(window, 'load', initialize);
+		
+		function display_nodes_and_lines()
+		{
+			$.ajax({
+				url: "http://localhost:5000/get_nodes",
+				cache: false,
+				dataType: "json",
+				success: function(data)
+				{
+					$.each(data, function( index, node ) {
+						nodes[node['id']] = {'id': node['id'], 'lat': node['lat'], 'lon': node['lon']};
+						var marker = new google.maps.Marker({
+						    position: new google.maps.LatLng(node['lat'], node['lon']),
+						    map: map
+						});
+						
+						var infowindow = new google.maps.InfoWindow({
+						    content: '<div>' + node['id'] + '</div>'
+						});
+						google.maps.event.addListener(marker, 'click', function() {
+						    infowindow.open(map,marker);
+						});
+						
+					});
+				},
+				error: function (xhr, ajaxOptions, thrownError) 
+				{
+					console.log(xhr);
+					console.log(ajaxOptions);
+					console.log(thrownError);
+				}
+			});
+			$.ajax({
+				url: "http://localhost:5000/get_edges",
+				cache: false,
+				dataType: "json",
+				success: function(data)
+				{
+					//console.log(data);
+					$.each(data, function( index, edge ) {
+						path = [];
+						if (edge['shape'] == null)
+						{
+							node_from = nodes[edge['from']];
+							node_to = nodes[edge['to']];
+							path = [
+                             new google.maps.LatLng(node_from['lat'], node_from['lon']),
+                             new google.maps.LatLng(node_to['lat'], node_to['lon'])];
+							
+						}
+						else
+						{
+							coordinates = edge['shape'].split(" ");
+							for (var i = 0; i < coordinates.length; i++) {
+								lat_lon = coordinates[i].split(',');
+							    path.push(new google.maps.LatLng(lat_lon['lat'], lat_lon['lon']));
+							}
+						}
+						var edgePath = new google.maps.Polyline({
+						    path: path,
+						    geodesic: true,
+						    strokeColor: '#FF0000',
+						    strokeOpacity: 1.0,
+						    strokeWeight: 2
+						});
+
+						edgePath.setMap(map);
+						lines.push(edgePath);
+					});
+				},
+				error: function (xhr, ajaxOptions, thrownError) 
+				{
+					console.log(xhr);
+					console.log(ajaxOptions);
+					console.log(thrownError);
+				}
+			});
+		}
+		
+		setTimeout(display_nodes_and_lines, 1000);
+		</script>
+	</head>
+	<body>
+		<div id="map_area" style="height: 100%; width:100%"></div>
+	</body>
+
+</html>

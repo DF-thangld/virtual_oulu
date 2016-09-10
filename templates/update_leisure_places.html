@@ -1,0 +1,97 @@
+<html>
+	<head>
+		<script src="/static/jquery-2.1.4.min.js"></script>
+		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&sensor=false"></script>
+		<script language="javascript">
+			var mapOptions = {
+			  center: new google.maps.LatLng(65.020532, 25.497628),
+			  zoom: 13,
+			  disableDefaultUI: true
+			};
+			var map;
+			var geocoder;
+			var point_of_interest_service;
+			var time = 0;
+			$(function(){
+				geocoder = new google.maps.Geocoder();
+				map = new google.maps.Map(document.getElementById('map_panel'), mapOptions);
+				point_of_interest_service = new google.maps.places.PlacesService(map);
+				window.setInterval(function(){
+					$.ajax({
+						type: "GET",
+						url: "/leisure_places",
+						cache: false,
+						dataType: "json",
+						success: function(json) 
+						{
+							
+							$(json).each(function( index, element ) 
+							{
+								var request = {
+									placeId: element.place_id
+								};
+								point_of_interest_service.getDetails(request, function(place, status) {
+									
+									if (status == google.maps.places.PlacesServiceStatus.OK) 
+									{
+										$.ajax({
+											type: "POST",
+											url: "/update_leisure_place",
+											data: JSON.stringify({ 	place_id: place.place_id,
+																	name: place.name,
+																	address: place.formatted_address,
+																	lat: place.geometry.location.A,
+																	lon: place.geometry.location.F,
+																	type: place.types[0]}),
+											cache: false,
+											dataType: "json",
+											success: function(new_json) 
+											{
+												//console.log(new_json);
+											}
+										});
+									}
+									else
+									{
+										/*$.ajax({
+											type: "POST",
+											url: "/update_leisure_place_error",
+											data: JSON.stringify({ 	place_id: place.place_id}),
+											cache: false,
+											dataType: "json",
+											success: function(new_json) 
+											{
+												//console.log(new_json);
+										});*/
+										console.log(place, status);	
+									}
+								});
+								
+							});
+						}
+					});
+					/*if (time >= 50)
+						location.reload();*/
+				}, 5000);
+				
+			});
+		</script>
+		<style type="text/css">
+			img.wp-smiley,
+			img.emoji {
+				display: inline !important;
+				border: none !important;
+				box-shadow: none !important;
+				height: 1em !important;
+				width: 1em !important;
+				margin: 0 .07em !important;
+				vertical-align: -0.1em !important;
+				background: none !important;
+				padding: 0 !important;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="map_panel" style="width:200px;height:200px;"></div>
+	</body>
+</html>

@@ -1,0 +1,340 @@
+var ENABLE_SHADOWS = true;
+
+
+function createCanvasObject(text) {
+    //http://stemkoski.github.io/Three.js/Texture-From-Canvas.html
+    
+    var canvas1 = document.createElement('canvas');
+    canvas1.width = 256;
+    canvas1.height = 128;
+	var context1 = canvas1.getContext('2d');
+    context1.textBaseline = 'middle';
+    context1.textAlign = "center";
+	context1.font = "Bold 100px Arial";
+	context1.fillStyle = "rgba(255,0,0,0.95)";
+    context1.fillText(text, 128, 64);
+    
+	// canvas contents will be used for a texture
+	var texture1 = new THREE.Texture(canvas1) 
+	texture1.needsUpdate = true;
+      
+    var material1 = new THREE.MeshBasicMaterial( {map: texture1, side:THREE.DoubleSide } );
+    material1.transparent = true;
+
+    var mesh1 = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.1, 0.1),
+        material1
+      );
+    
+    return mesh1;
+
+}
+
+function createCanvasSprite(text,circlecolor,textr,textg,textb) {
+    //http://stemkoski.github.io/Three.js/Texture-From-Canvas.html
+    
+    var canvas1 = document.createElement('canvas');
+    canvas1.width = 64;
+    canvas1.height = 64;
+	var context1 = canvas1.getContext('2d');
+
+    //http://www.html5canvastutorials.com/tutorials/html5-canvas-circles/
+    context1.beginPath();
+    context1.arc(32, 32, 28, 0, 2 * Math.PI, false);
+    context1.fillStyle = circlecolor;
+    context1.fill();
+    context1.lineWidth = 1;
+    context1.strokeStyle = '#003300';
+    context1.stroke();
+    
+    context1.textBaseline = 'middle';
+    context1.textAlign = "center";
+	context1.font = "Bold 30px Arial";
+	context1.fillStyle = "rgba("+textr.toString()+","+textg.toString()+","+textb.toString()+",0.95)";
+    context1.fillText(text, 32, 32);
+    
+	// canvas contents will be used for a texture
+	var texture1 = new THREE.Texture(canvas1) 
+	texture1.needsUpdate = true;
+      
+    var material = new THREE.SpriteMaterial( { map: texture1, color: 0xffffff, fog: false } );
+    var sprite = new THREE.Sprite( material );
+    
+    return sprite;
+
+}
+
+
+function createSkyBox() {
+    var loader = new THREE.TextureLoader();
+    
+    var geometry = new THREE.CubeGeometry(1000, 1000, 1000);
+    var toptexture = loader.load("textures/skybox_up.png");
+    var sidetexture = loader.load("textures/skybox_sides.png");
+    var bottomtexture = loader.load("textures/skybox_down.png");
+    
+    var material = new THREE.MeshFaceMaterial([
+        new THREE.MeshBasicMaterial({
+            map: sidetexture,
+            side: THREE.BackSide
+        }),
+        new THREE.MeshBasicMaterial({
+            map: sidetexture,
+            side: THREE.BackSide
+        }),
+        new THREE.MeshBasicMaterial({
+            map: toptexture,
+            side: THREE.BackSide
+        }),
+        new THREE.MeshBasicMaterial({
+            map: bottomtexture,
+            side: THREE.BackSide
+        }),
+        new THREE.MeshBasicMaterial({
+            map: sidetexture,
+            side: THREE.BackSide
+        }),
+        new THREE.MeshBasicMaterial({
+            map: sidetexture,
+            side: THREE.BackSide
+        })
+    ]);
+    var skybox = new THREE.Mesh(geometry, material);
+    scene.add(skybox);
+    return skybox;
+}
+
+var loadMinibus = function() {
+    var group = new THREE.Group();
+    var material = new THREE.MeshPhongMaterial( {shading: THREE.SmoothShading });
+    var bus_model = new THREE.Mesh(
+        new THREE.BoxGeometry( 0.2, 0.3, 0.6 ),
+        material
+        );
+    
+    group.add(bus_model);
+    var model_loader = new THREE.JSONLoader();
+    var texture_loader = new THREE.TextureLoader();
+
+    model_loader.load(
+        "models/bus_mdl.json",
+        function ( geometry ) {
+            bus_model.geometry = geometry;
+            bus_model.scale.set( 0.15, 0.15, 0.15 );
+        }
+    );
+
+    texture_loader.load(
+        "textures/bus_tex_hd.png",
+        function( texture ) {
+            //console.log("texture");
+            bus_model.material.map = texture;
+            bus_model.material.needsUpdate = true;
+        });
+    
+    texture_loader.load(
+        "textures/bus_tex_hd_bump.png",
+        function( texture ) {
+            //console.log("bump");
+            bus_model.material.bumpMap = texture;
+            bus_model.material.bumpScale = 0.05;
+            bus_model.material.needsUpdate = true;
+        });
+        
+    texture_loader.load(
+        "textures/bus_tex_hd_specular.png",
+        function( texture ) {
+            //console.log("specular");
+            bus_model.material.specularMap = texture;
+            bus_model.material.specular = new THREE.Color('white');
+            bus_model.material.needsUpdate = true;
+        });
+
+    //console.log(bus_model.material);
+    bus_model.position.y = 0.015;
+    bus_model.castShadow = true;
+    bus_model.receiveShadow = true;
+    return group;
+};
+
+var loadStopModel = function() {
+    var model_loader = new THREE.JSONLoader();
+    var texture_loader = new THREE.TextureLoader();
+    var stop_model = new THREE.Mesh(
+        new THREE.BoxGeometry( 0.1, 1.0, 0.1 ),
+        new THREE.MeshLambertMaterial({color: 0x000099})
+        );
+
+    model_loader.load(
+        "models/stop_mdl.json",
+        function( geometry ) {
+            stop_model.geometry = geometry;
+            stop_model.scale.set( 0.1, 0.13, 0.1 );
+            });
+
+    texture_loader.load(
+        "textures/stop_tex.png",
+        function( texture ) {
+            var material = new THREE.MeshLambertMaterial({ map: texture });
+            stop_model.material = material;
+        });
+
+    return stop_model;
+}
+
+var updateIcons = function(icons) {
+    var camerapos = camera.localToWorld(camera.position.clone());
+    for (var i = 0; i < icons.length ; i++) {
+        var icon = icons[i];
+        var distance = camerapos.distanceTo(icon.localToWorld(icon.position.clone()));
+        if (distance > 6) {
+            icon.visible = true;
+            icon.scale.set(distance*0.015,distance*0.015,distance*0.015);
+            icon.position.setY(distance*0.015);
+        }
+        else {
+            icon.visible = false;
+        }
+    }
+}
+
+var render = function () {
+    requestAnimationFrame( render );
+    delta = clock.getDelta();
+    update_time += delta;
+
+    for (var i = 0; i < bus_count; i++) {
+        updateBusParameters(buses[i]);
+    }
+
+    if (update_time >= 5){
+        update_time = 0;
+        getVehicles();
+        buscount_all = vehicles.length;
+
+        for (var i = 0; i < bus_count; i++) {
+            for (var j = 0; j < buscount_all; j++) {
+                if (vehicles[j].id == buses[i].name) {
+                    coords = convertGPStoScene(vehicles[j].vehicle.position.latitude, vehicles[j].vehicle.position.longitude);
+                    calculateAcceleration(buses[i], coords); 
+                    break;
+                }
+            }
+        }
+    }
+    updateLoop();
+    renderer.render( scene, camera );
+};
+
+var updateLoop = function () {
+    mapLoader.updateMap();
+    skybox.position.copy(cameraroot.position);
+    directionalLight.position.copy( cameraroot.position )
+    directionalLight.position.add( new THREE.Vector3( 10, 15, 12 ));
+    
+    updateIcons(bus_icons);
+}
+
+var scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2( 0xddebed, 0.004);
+var camera = new THREE.PerspectiveCamera(43, window.innerWidth/window.innerHeight, 0.03, 3000 );
+camera.position.set( 0.92, 1.12, 0.98 );
+camera.rotation.set( -0.85, 0.55, 0.54 );
+
+var renderer = new THREE.WebGLRenderer();
+renderer.shadowMap.enabled = ENABLE_SHADOWS;
+renderer.setSize( window.innerWidth, window.innerHeight );
+document.body.appendChild( renderer.domElement );
+
+//Creating a camera control object and passing the camera as a parameter.
+var controls = new CamControl(camera);
+
+//If you want to move the camera , don't move the camera itself, move the controls.getCameraRoot() object.
+//This is the object that the camera is always looking at, and the camera moves with it.
+var cameraroot = controls.getCameraRoot();
+
+scene.add( new THREE.AmbientLight(0x595959) );
+
+//add stops parent object to scene
+var stops = new THREE.Object3D();
+scene.add(stops);
+
+// Create a model for the bus stops
+var bus_stop_model = loadStopModel();
+
+//add routes parent object to scene
+var routesPO = new THREE.Object3D();
+scene.add(routesPO);
+
+var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
+directionalLight.position.set( 10, 15, 12 );
+directionalLight.rotation.set( 0, 0, 0 );
+directionalLight.castShadow = true;
+directionalLight.target = cameraroot;
+directionalLight.shadow.camera.right = 10;
+directionalLight.shadow.camera.left = -10;
+directionalLight.shadow.camera.top = 10;
+directionalLight.shadow.camera.bottom = -10;
+directionalLight.shadow.mapSize.height = 2048;
+directionalLight.shadow.mapSize.width = 2048;
+scene.add( directionalLight );
+
+skybox = createSkyBox();
+
+
+// Bus movement related variables
+var buses = [];
+var bus_icons = [];
+var bus_count = 0;
+var buscount_all = 0;
+var clock = new THREE.Clock();
+var delta = clock.getDelta();
+var update_time = delta;
+
+var pos = convertGPStoScene(65.0586296, 25.4710081);
+cameraroot.position.copy(pos);
+
+var mapLoader = new MapLoader(cameraroot,camera);
+mapLoader.updateMap();
+
+//Fetch real time bus data
+getVehicles();
+
+//Drawing a bus route on the map.
+//In order to test this feature, you need to enable cross-origin.
+//On Chrome, start with --disable-web-security parameter
+//On Firefox, use CORS Everywhere addon
+
+//Initializes the trips variable
+getTrips();
+
+//Get route info
+getRoutes();
+
+//Get services that are active today
+getTodayServices();
+
+render();
+
+//Because the trips variable takes a while to initialized, the code must wait until it's ready.
+//http://stackoverflow.com/questions/7559386/asynchronously-delay-js-until-a-condition-is-met
+(function wait() {
+    if ( trips != null && vehicles != null) {
+        //Done
+        //Gets and draws a shape for bus route 1, default direction.
+        
+        //Commenting next line because it is not needed anymore
+        //getShapeAndDraw(1, true);
+        
+        activateBuses();
+        
+    } else {
+        //Wait 500 milliseconds
+        setTimeout( wait, 500 );
+    }
+})();
+
+
+
+
+

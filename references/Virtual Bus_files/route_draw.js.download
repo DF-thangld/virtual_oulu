@@ -1,0 +1,127 @@
+//Draw stops and store them under stop-parent object
+function drawStops(data, routeid){
+    for( var i=0; i<data.length; i++ ) {
+        var point = data[i];
+        var lat = point.stop_lat;
+        var lon = point.stop_lon;
+        var xyz = convertGPStoScene(lat, lon);
+        var sid = point.stop_id;
+        var n = point.stop_name;
+
+        var pole = bus_stop_model.clone();
+
+        pole.userData = {stop_id:sid , stop_name: n, associated_route:routeid};
+
+        stops.add(pole);
+
+        pole.position.x = xyz["x"];
+        pole.position.y = 0;
+        pole.position.z = xyz["z"];
+    }
+}
+
+
+function drawRoute(data, routeid) {
+    //Draws the given shape to the map
+    var points = [];
+    
+    for( var i=0; i<data.length; i++ ) {
+        //Iterates through the points, adds the coordinates to vertices
+        var point = data[i];
+        var lat = point.shape_pt_lat;
+        var lon = point.shape_pt_lon;
+        var xyz = convertGPStoScene(lat, lon);
+        points.push(xyz);
+    }
+    
+    //Deletes previous route
+    //if(previousRoute != null){
+    //    scene.remove(previousRoute);
+    //}
+    
+    var routeGeometry = new THREE.Geometry(); 
+    
+    for( var i=1; i<points.length-1; i++ ) {
+        //Calculating the vertices for the mesh
+        var width = 0.065;
+    
+        var point = points[i];
+        var lastpoint = points[i-1];
+        var nextpoint = points[i+1];
+        
+        var lastdirection = lastpoint.clone();
+        
+        lastdirection.sub(point.clone());
+        lastdirection.normalize();
+            
+        var nextdirection = nextpoint.clone();
+        nextdirection.sub(point.clone());
+        nextdirection.normalize();
+            
+            //Midvector is basically the vector that's angle is between the next and the last part of the route
+            //So it can be used to find the left and right part of the "road", which are needed for the mesh
+            //Width is calculated using a scalar 1/sin(angle/2), so that steep turns have wider roads
+            
+            var angle = lastdirection.angleTo(nextdirection);
+            //console.log("Angle:",angle*360/(2*Math.PI));
+            var scalar = 1/Math.sin(angle/2);
+            //console.log("Scalar:",scalar);
+            var new_width = width* scalar;
+            new_width = Math.min(0.2,new_width);
+            
+            midvector = lastdirection.clone().add(nextdirection);
+            midvector.setLength(new_width);
+            
+            var crossproduct = nextdirection.clone().cross(lastdirection);
+            var leftPoint;
+            var rightPoint;
+            //Cross product to figure out the direction of the angle
+            if (crossproduct.y < 0) {
+                rightPoint = point.clone().add(midvector);
+                leftPoint = point.clone().sub(midvector);
+            }
+            else {
+                rightPoint = point.clone().sub(midvector);
+                leftPoint = point.clone().add(midvector);
+            }
+            
+            //Adding the vertices to the geometry
+            routeGeometry.vertices.push(new THREE.Vector3(rightPoint.x, 0.023,rightPoint.z));
+            routeGeometry.vertices.push(new THREE.Vector3(leftPoint.x, 0.023, leftPoint.z));
+        //}
+    }
+    
+    //Adding faces to be drawn
+    for( var i=0; i<routeGeometry.vertices.length-2; i++ ) {
+        routeGeometry.faces.push(new THREE.Face3(i, i+1, i+2)); 
+    }
+    
+    //These can be used to draw some debugging lines to see where the vertices are:
+/*     var routepoints = new THREE.Geometry();
+    routepoints.vertices = points;
+    
+    var lineMaterial = new THREE.LineBasicMaterial({
+        color: 0xf00000
+    });
+    
+    var lineMaterial2 = new THREE.LineBasicMaterial({
+        color: 0x00ff00
+    });
+    var line = new THREE.Line(routeGeometry, lineMaterial);
+    scene.add(line);
+    
+    var line = new THREE.Line(routepoints, lineMaterial2);
+    scene.add(line); */
+    
+    
+    //Creating the mesh
+    var routeMaterial = new THREE.MeshBasicMaterial( {color: 0xFFE100, side: THREE.DoubleSide} );
+    
+    var routeMesh = new THREE.Mesh(routeGeometry, routeMaterial);
+    
+    routeMesh.userData = {associated_route:routeid};
+      
+    routesPO.add(routeMesh);
+
+}
+

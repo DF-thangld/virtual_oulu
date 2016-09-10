@@ -1,0 +1,73 @@
+// Functions for moving buses
+// bus.userData.xv = x axis velocity
+// bus.userData.zv = z axis velocity
+// bus.userData.xa = x axis acceleration
+// bus.userData.za = z axis acceleration
+// bus.rotation.y  = bus heading
+
+// Calculates the x and z axis acceleration for object3D bus based on given coordinates.
+// from formula: s = s0 + vt + 0.5at^2 (t=1) 
+function calculateAcceleration(bus, coordinates){
+    bus.userData.xa = 2*(coordinates.x - bus.position.x - bus.userData.xv);
+    bus.userData.za = 2*(coordinates.z - bus.position.z - bus.userData.zv);
+} 
+
+// Updates position, heading and velocity for the bus
+function updateBusParameters(bus){
+    // Set new velocity based on acceleration 
+    bus.userData.xv += bus.userData.xa / (10/delta);
+    bus.userData.zv += bus.userData.za / (10/delta);
+    // Set new position based on velocity
+    bus.position.x += bus.userData.xv / (10/delta);
+    bus.position.z += bus.userData.zv / (10/delta); 
+    
+    // Set bus rotation to face movement direction   
+    if (Math.pow(bus.userData.xv,2)+Math.pow(bus.userData.zv,2) > 0.1) {
+        if (bus.userData.xv > 0){
+            if (bus.userData.zv > 0) {
+                bus.rotation.y = Math.atan2(Math.abs(bus.userData.xv),Math.abs(bus.userData.zv));   
+            } else {
+                bus.rotation.y = Math.PI - Math.atan2(Math.abs(bus.userData.xv),Math.abs(bus.userData.zv));
+            }
+        } else {
+            if (bus.userData.zv > 0) {
+                bus.rotation.y = Math.PI*2 - Math.atan2(Math.abs(bus.userData.xv),Math.abs(bus.userData.zv));
+            } else {
+                bus.rotation.y = Math.PI + Math.atan2(Math.abs(bus.userData.xv),Math.abs(bus.userData.zv));
+            } 
+        } 
+    }
+}
+
+//Pushes buses in the vehicles data to array named buses and adds them to the scene.
+function activateBuses(){
+    bus_icons = [];
+    buscount_all = vehicles.length;
+    for (var i = 0; i < buscount_all; i++) {
+        buses.push(loadMinibus());
+        var last_element = buses.length - 1
+        //buses[last_element].rotation.y = Math.PI - (vehicles[i].monitoredVehicleJourney.bearing / 180 * Math.PI);
+        buses[last_element].rotation.y = 0.0;
+        buses[last_element].name = vehicles[i].id;
+        buses[last_element].userData.xv = 0;
+        buses[last_element].userData.zv = 0;
+        buses[last_element].userData.xa = 0;
+        buses[last_element].userData.za = 0;
+        buses[last_element].position.copy(convertGPStoScene(vehicles[i].vehicle.position.latitude, vehicles[i].vehicle.position.longitude));
+        
+        // TODO full name needs to be obtained from the static GTFS...
+        buses[last_element].userData.line = getRouteShortNameById(vehicles[i].vehicle.trip.route_id);
+        
+        lineText = createCanvasObject(buses[last_element].userData.line);
+        lineText.position.set(0,0.084,0);
+        lineText.rotateX(-Math.PI/2);
+        buses[last_element].add(lineText);
+        scene.add(buses[last_element]);
+        
+        busIcon = createCanvasSprite(buses[last_element].userData.line,'red',255,255,255);
+        busIcon.position.set(0,0.2,0);
+        buses[last_element].add(busIcon);
+        bus_icons.push(busIcon);
+    }
+    bus_count = buses.length;
+}

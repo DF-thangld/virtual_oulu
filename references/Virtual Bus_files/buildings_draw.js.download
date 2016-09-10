@@ -1,0 +1,713 @@
+var nodes = [];
+var ways = [];
+var waybuildings = [];
+var relationbuildings = [];
+
+var buildings = [];
+
+
+var wayforests = [];
+var relationforests = [];
+var forests = [];
+
+var wayplants = [];
+var relationplants = [];
+var plants = [];
+
+var worldscale = 20 / 1050; //Assuming that 20 units (one tile at zoom level 15) is roughly 1050 real meters wide.
+
+var floorheight = 3.2;
+
+var lineMaterial = new THREE.LineBasicMaterial({
+    color: 0x00ff00
+});
+
+var loader = new THREE.TextureLoader();
+
+var walltexture = loader.load("textures/wall_bigwindow.png");
+var wallspecular = loader.load("textures/wall_bigwindow_specular.png");
+var wallbump = loader.load("textures/wall_bigwindow_bump.png");
+var rooftexture = loader.load("textures/rooftile.png");
+var roofbump = loader.load("textures/roofbump.png");
+var roofspecular = loader.load("textures/roofspecular.png");
+
+var plantbump = loader.load("textures/plantbump.png");
+
+walltexture.wrapS = THREE.RepeatWrapping;
+walltexture.wrapT = THREE.RepeatWrapping;
+walltexture.repeat.set( 17, 17 );
+
+wallspecular.wrapS = THREE.RepeatWrapping;
+wallspecular.wrapT = THREE.RepeatWrapping;
+wallspecular.repeat.set( 17, 17 );
+
+wallbump.wrapS = THREE.RepeatWrapping;
+wallbump.wrapT = THREE.RepeatWrapping;
+wallbump.repeat.set( 17, 17 );
+
+rooftexture.wrapS = THREE.RepeatWrapping;
+rooftexture.wrapT = THREE.RepeatWrapping;
+rooftexture.repeat.set( 17, 17 );
+
+roofbump.wrapS = THREE.RepeatWrapping;
+roofbump.wrapT = THREE.RepeatWrapping;
+roofbump.repeat.set( 17, 17 );
+
+roofspecular.wrapS = THREE.RepeatWrapping;
+roofspecular.wrapT = THREE.RepeatWrapping;
+roofspecular.repeat.set( 17, 17 );
+
+plantbump.wrapS = THREE.RepeatWrapping;
+plantbump.wrapT = THREE.RepeatWrapping;
+plantbump.repeat.set( 10, 10 );
+
+var buildingWallMaterial = new THREE.MeshPhongMaterial({
+    map: walltexture,
+    color: 0xffffff,
+    side: THREE.FrontSide,
+    shading: THREE.SmoothShading
+});
+
+buildingWallMaterial.bumpMap = wallbump;
+buildingWallMaterial.bumpScale = 0.02;
+
+buildingWallMaterial.specularMap = wallspecular;
+buildingWallMaterial.specular = new THREE.Color('white');
+
+var buildingRoofMaterial = new THREE.MeshPhongMaterial({
+    map: rooftexture,
+    color: 0xffffff,
+    side: THREE.FrontSide,
+    shading: THREE.SmoothShading
+});
+
+buildingRoofMaterial.bumpMap = roofbump;
+buildingRoofMaterial.bumpScale = 0.02;
+
+buildingRoofMaterial.specularMap = roofspecular;
+buildingRoofMaterial.specular = new THREE.Color('white');
+
+var buildingMaterial = new THREE.MeshFaceMaterial([buildingRoofMaterial,buildingWallMaterial]);
+
+var forestMaterial = new THREE.MeshPhongMaterial({
+    color: 0x417338,
+    side: THREE.FrontSide,
+    shading: THREE.SmoothShading
+});
+forestMaterial.bumpMap = plantbump;
+var treeGeometry = new THREE.CylinderGeometry( 0.01, 0.2, 0.7, 8 );
+var treemesh = new THREE.Mesh( treeGeometry, forestMaterial );
+
+var plantMaterial = new THREE.MeshPhongMaterial({
+    color: 0x5ABA49,
+    side: THREE.FrontSide,
+    shading: THREE.SmoothShading
+});
+plantMaterial.bumpMap = plantbump;
+var plantGeometry = new THREE.SphereGeometry( 0.1, 8, 4);
+var plantmesh = new THREE.Mesh( plantGeometry, plantMaterial );
+
+
+var forestFloorMaterial = new THREE.MeshPhongMaterial({
+    color: 0x56A82D,
+    side: THREE.FrontSide,
+    shading: THREE.SmoothShading
+});
+forestFloorMaterial.bumpMap = plantbump;
+forestFloorMaterial.transparent = true;
+forestFloorMaterial.opacity = 0.0;
+
+var plantFloorMaterial = new THREE.MeshPhongMaterial({
+    color: 0x74ED39,
+    side: THREE.FrontSide,
+    shading: THREE.SmoothShading
+});
+plantFloorMaterial.bumpMap = plantbump;
+plantFloorMaterial.transparent = true;
+plantFloorMaterial.opacity = 0.0;
+
+var plantGeometry = new THREE.SphereGeometry( 0.1, 8, 4);
+var plantmesh = new THREE.Mesh( plantGeometry, plantMaterial );
+
+function WorldObject (mesh, middlePoint) {
+
+    this.mesh = mesh;
+    this.middlePoint = middlePoint; //The center point of the building
+    this.gpsPoint = convertScenetoGPS(middlePoint.x,middlePoint.z);
+    
+    this.show = function() {
+        scene.add(this.mesh);
+    }
+    
+    this.remove = function() {
+        scene.remove(this.mesh);
+    };
+}
+
+function drawBuildings(data) {
+    //Draws the buildings in the dataset.
+    
+    //Initializing
+    buildings = removeAll(buildings);
+    var elements = data.elements;
+    
+    initializeArrays(elements);
+    
+    //Draws the buildings which are ways (collection of nodes).
+    drawWays(waybuildings, null, null, null, buildingMaterial, buildings);
+    
+    drawRelations(relationbuildings, 8, 0, buildingMaterial, buildings);
+}
+
+
+function drawForests(data) {
+    //Draws the forests in the dataset.
+    
+    //Initializing
+    forests = removeAll(forests);
+    var elements = data.elements;
+
+    initializeArrays(elements);
+    
+    //Draws the forests which are ways (collection of nodes).
+    
+    var height_array = [];
+    var minheight_array = [];
+    for (var i = 0; i<wayforests.length;i++) {
+        height_array.push(1);
+        minheight_array.push(0);
+    }
+    
+    drawWays(wayforests, height_array, minheight_array, null, forestFloorMaterial, forests, treemesh);
+    
+    drawRelations(relationforests, 1, 0, forestFloorMaterial, forests, treemesh);
+}
+
+
+function drawPlants(data) {
+    //Draws the scrubs, meadows and parks in the dataset.
+    
+    //Initializing
+    plants = removeAll(plants);
+    var elements = data.elements;
+
+    initializeArrays(elements);
+    
+    //Draws the plants which are ways (collection of nodes).
+
+    var height_array = [];
+    var minheight_array = [];
+    for (var i = 0; i<wayplants.length;i++) {
+        height_array.push(1);
+        minheight_array.push(0);
+    }
+    
+    drawWays(wayplants, height_array, minheight_array, null, plantFloorMaterial, plants, plantmesh);
+    drawRelations(relationplants, 1, 0, plantFloorMaterial, plants, plantmesh);
+}
+
+function drawRelations(relations, height, min_height, material, target, fill) {
+    //Draws relations (collection of ways).
+    var outerways = [];
+    var holes = [];
+    var height_array = [];
+    var minheight_array = [];
+    for (var i=0; i<relations.length; i++) {
+        holes.push([]);
+        var thisrelation = relations[i];
+        theseways = [];
+        
+        //Checks if there's height data for this building
+        if ("tags" in thisrelation) {
+            if ("height" in thisrelation["tags"]) {
+                height = parseInt(thisrelation["tags"]["height"]);
+            }
+            else if ("building:levels" in thisrelation["tags"]) {
+                height = parseInt(thisrelation["tags"]["building:levels"])*floorheight;
+            }
+            if ("min_height" in thisrelation["tags"]) {
+                min_height = parseInt(thisrelation["tags"]["min_height"]);
+            }
+            else if ("building:min_level" in thisrelation["tags"]) {
+                min_height = (parseInt(thisrelation["tags"]["building:min_level"]) - 1) * floorheight;
+            }
+        }
+        height_array.push(height);
+        minheight_array.push(min_height);
+        //Adds all outer ways into a single way, and adds inner ways into a holes array.
+        var nodes_temp = [];
+        for (var j=0;j<thisrelation["members"].length;j++) {
+            //console.log(nodes_temp.length);
+            if (outerways.length <= i && thisrelation["members"][j]["role"] == "outer") {
+                outerways.push(getWay(thisrelation["members"][j]["ref"]));
+                nodes_temp.push(getWay(thisrelation["members"][j]["ref"])["nodes"]);
+            }
+            else if (thisrelation["members"][j]["role"] == "outer") {
+                nodes_temp.push(getWay(thisrelation["members"][j]["ref"])["nodes"]);
+            }
+            else if (thisrelation["members"][j]["role"] == "inner") {
+                holes[i].push(getWay(thisrelation["members"][j]["ref"]));
+            }
+        }
+        if (nodes_temp.length > 0) {
+            newnodes = orderNodes(nodes_temp);
+            outerways[i]["nodes"] = newnodes;
+        }
+    }
+    if (outerways.length > 0) {
+        drawWays(outerways, height_array, minheight_array, holes, material, target, fill);
+    }
+
+}
+
+function drawWays(array, height_array, minheight_array, holes, material, target, fill) {
+    //Draws buildings defined by an array of ways. Height parameters can be given, if taken from relation building.
+    for (var i=0; i<array.length; i++) {
+        var thisway = array[i];
+        var height;
+        var min_height;
+        
+        //Checks if height was given as a parameter
+        if (minheight_array == null) {
+            min_height = 0;
+        }
+        else {
+            min_height = minheight_array[i];
+        }
+        if (height_array == null) {
+            height = floorheight*2;
+        }
+        else {
+            height = height_array[i];
+        }
+        
+
+        if (thisway != null) {
+            
+            //Checks if there's height data
+            if ("tags" in thisway) {
+                if ("height" in thisway["tags"]) {
+                    height = parseInt(thisway["tags"]["height"]);
+                }
+                else if ("building:levels" in thisway["tags"]) {
+                    height = parseInt(thisway["tags"]["building:levels"])*floorheight;
+                }
+                if ("min_height" in thisway["tags"]) {
+                    min_height = parseInt(thisway["tags"]["min_height"]);
+                }
+                else if ("building:min_level" in thisway["tags"]) {
+                    min_height = (parseInt(thisway["tags"]["building:min_level"]) - 1) * floorheight;
+                }
+            }
+            if (height == 0) {
+                height = floorheight*2;
+            }
+            //Converting height to world scale
+            height = worldscale * height;
+            min_height = worldscale * min_height;
+            
+            height -= min_height;
+                
+            middlePoint = new THREE.Vector3(0,0,0);
+            //Adds the vertices.
+            var shape = new THREE.Shape();
+            if (thisway["nodes"] != null) {
+                for (var j=thisway["nodes"].length-1;j>=0;j--) {
+                    var thisnode = getNode(thisway["nodes"][j]);
+                    if (thisnode != null){
+                        var xyz = convertGPStoScene(thisnode["lat"], thisnode["lon"]);
+                        if (j == thisway["nodes"].length-1) {
+                            shape.moveTo( xyz.x,xyz.z );
+                        }
+                        else {
+                            shape.lineTo( xyz.x, xyz.z );
+                        }
+                        middlePoint.add(xyz);
+                    }
+                }
+                                            
+                middlePoint.divideScalar(thisway["nodes"].length); //Average of all nodes
+            
+
+            
+                //Creating the roof holes
+                if (holes != null) {
+                    var theseholes = holes[i];
+                    for (h = 0; h < theseholes.length; h++) {
+                        thishole = theseholes[h];
+                        if (thishole != null) {
+                            var holepath = new THREE.Path();
+                            for (n = thishole["nodes"].length-1; n >= 0; n--) {
+                                var thisnode = getNode(thishole["nodes"][n]);
+                                if (thisnode != null){
+                                    var xyz = convertGPStoScene(thisnode["lat"], thisnode["lon"]);
+                                    if (n==thishole["nodes"].length-1) {
+                                        holepath.moveTo(xyz.x, xyz.z);
+                                    }
+                                    else {
+                                        holepath.lineTo(xyz.x, xyz.z);
+                                    }
+                                }
+                            }
+                        }
+                        shape.holes.push(holepath); 
+                    }
+                }
+                
+                var extrudeSettings = {
+                    bevelEnabled : false,
+                    steps: 1,
+                    amount: -height,
+                    material:0,
+                    extrudeMaterial : -1,
+                    UVGenerator: FixedUVGenerator
+                };
+
+                var mesh;
+                if (height > 0.02) {
+                    var geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
+                    flipFaces(geometry);
+                    /* geometry.scale(1,1,-1);
+                    geometry.computeFaceNormals();
+                    geometry.computeVertexNormals(); */
+                    mesh = new THREE.Mesh( geometry, material );
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    mesh.position.set(mesh.position.x, min_height, mesh.position.z);
+                }
+                else {
+                    var geometry = new THREE.ShapeGeometry( shape );
+                    flipFaces(geometry);
+                    /* geometry.scale(1,1,-1);
+                    geometry.computeFaceNormals();
+                    geometry.computeVertexNormals(); */
+                    mesh = new THREE.Mesh( geometry, material );
+                    mesh.receiveShadow = true;
+                    mesh.position.set(mesh.position.x, height, mesh.position.z);
+                }
+                
+                //Just checking if the middlepoints are in the right place
+                //cube = new THREE.Mesh( new THREE.CubeGeometry( 0.1, 2, 0.1 ), new THREE.MeshNormalMaterial() );
+                //cube.position.set(middlePoint.x,middlePoint.y,middlePoint.z);
+                //scene.add(cube);
+
+                //mesh.position.set(mesh.position.x, 0.5, mesh.position.z);
+                //Must rotate, otherwise will go along the y axis
+                mesh.rotation.set(Math.PI/2, 0, 0);
+                //mesh.scale.set(1,-1,1);
+                
+                if (fill != undefined && fill != null) {
+                    fillWithObjects(mesh,fill,target);
+                }
+                
+                worldobject = new WorldObject(mesh, middlePoint);
+                worldobject.show();
+                target.push(worldobject);
+            }
+        }
+    }
+
+}
+
+var fillWithObjects = function(targetmesh,object,target) {
+    //http://stackoverflow.com/questions/32515390/how-to-put-a-circle-in-a-random-part-of-the-face-top-of-my-meshthree-js
+    var cst = new THREE.Raycaster();
+
+   // new random point 
+   /* var box = new THREE.Box3().setFromObject(targetmesh);
+   var size = Math.abs(box.min.x * box.min.z);
+   size = Math.min(size, 1000);
+   size = Math.max(size, 10);
+   for (var i = 0; i<size; i++) {
+   
+       var point = new THREE.Vector3(
+                (box.min.x-5) + (box.max.x+5-box.min.x)*Math.random(),
+                box.max.y+10,
+                (box.min.z-5) + (box.max.z+5-box.min.z)*Math.random()
+       );
+
+       // check if point on mesh in y-direction
+       cst.set(point, new THREE.Vector3(0,-1,0)); // direction of gravity        
+       var cls = cst.intersectObjects( [targetmesh] );
+       if (cls.length>0) {
+            objectclone = object.clone();
+            objectclone.castShadow = true;
+            objectclone.receiveShadow = true;
+            objectclone.position.set( point.x,targetmesh.position.y,point.z );
+            worldobject = new WorldObject(objectclone, objectclone.position);
+            worldobject.show();
+            target.push(worldobject);
+       }
+   } */
+   
+    
+    //This doesn't take into account the size of an individual triangle, so in practice it puts more objects in areas with small details, like treelines.
+    var area = getMeshArea(targetmesh);
+    var density = 1;
+    var total = density*area;
+    console.log("Total",total);
+    console.log("Faces",targetmesh.geometry.faces.length);
+    
+    total = Math.min(1000,total);
+    
+    for (var i = 0; i<total; i++) {
+        var rand = Math.floor((targetmesh.geometry.faces.length)*Math.random());
+        var face = targetmesh.geometry.faces[rand];
+        var point = getRandomPoint(targetmesh,face);
+        
+        console.log(point);
+        
+        var objectclone = object.clone();
+        objectclone.castShadow = true;
+        objectclone.receiveShadow = true;
+        objectclone.position.set( point.x,targetmesh.position.y,point.y );
+        var worldobject = new WorldObject(objectclone, objectclone.position);
+        worldobject.show();
+        target.push(worldobject);
+    }
+    
+    
+    /* 
+    //This should be the best solution but for some reason it hangs the browser
+    
+    for (i=0;i<targetmesh.geometry.faces.length;i++) {
+        var face = targetmesh.geometry.faces[i];
+        var face_area = face.area;
+        var amount = total * face_area / area;
+        
+        amount = 1;
+        
+        if (amount < 1) {
+            //console.log("Drawing objects, probability: ",amount);
+            var rand = Math.random();
+            if (rand < amount) {
+                var point = getRandomPoint(targetmesh,face);
+                
+                var objectclone = object.clone();
+                objectclone.castShadow = true;
+                objectclone.receiveShadow = true;
+                objectclone.position.set( point.x,targetmesh.position.y,point.y );
+                var worldobject = new WorldObject(objectclone, objectclone.position);
+                worldobject.show();
+                target.push(worldobject);
+            }
+        }
+        else {
+            //console.log("Drawing objects, amount: ",amount);
+            for (var i = 0; i < amount; i++) {
+                var point = getRandomPoint(targetmesh,face);
+                
+                var objectclone = object.clone();
+                objectclone.castShadow = true;
+                objectclone.receiveShadow = true;
+                objectclone.position.set( point.x,targetmesh.position.y,point.y );
+                var worldobject = new WorldObject(objectclone, objectclone.position);
+                worldobject.show();
+                target.push(worldobject);
+            }
+        }
+        
+        
+    } */
+}
+
+var getMeshArea = function(mesh) {
+    //http://www.mathopenref.com/coordtrianglearea.html
+    var area = 0;
+    for (var i = 0; i<mesh.geometry.faces.length; i++) {
+        var a = mesh.geometry.vertices[mesh.geometry.faces[i].a];
+        var b = mesh.geometry.vertices[mesh.geometry.faces[i].b];
+        var c = mesh.geometry.vertices[mesh.geometry.faces[i].c];
+        area += Math.abs((a.x*(b.y-c.y)+b.x*(c.y-a.y)+c.x*(a.y-b.y))/2);
+        mesh.geometry.faces[i].area = area;
+    }
+    return area;
+}
+
+var getFaceArea = function(mesh,face) {
+    //http://www.mathopenref.com/coordtrianglearea.html
+    var area = 0;
+    var a = mesh.geometry.vertices[face.a];
+    var b = mesh.geometry.vertices[face.b];
+    var c = mesh.geometry.vertices[face.c];
+    area += Math.abs((a.x*(b.y-c.y)+b.x*(c.y-a.y)+c.x*(a.y-b.y))/2);
+    face.area = area;
+    return area;
+}
+
+var getRandomPoint = function(mesh,face) {
+    //Calculates a random point inside a triangular face by taking a randomly weighted average of vertices.
+    var a = mesh.geometry.vertices[face.a];
+    var b = mesh.geometry.vertices[face.b];
+    var c = mesh.geometry.vertices[face.c];
+    
+    var a_w = Math.random();
+    var b_w = Math.random();
+    var c_w = Math.random();
+    
+    var a_weight = a_w / (a_w+b_w+c_w);
+    var b_weight = b_w / (a_w+b_w+c_w);
+    var c_weight = c_w / (a_w+b_w+c_w);
+    
+    var vector = a.clone().multiplyScalar(a_weight).add(b.clone().multiplyScalar(b_weight)).add(c.clone().multiplyScalar(c_weight));
+    
+    return vector;
+}
+
+function initializeArrays(elements) {
+    //Initializing data arrays
+    nodes = [];
+    ways = [];
+    waybuildings = [];
+    relationbuildings = [];
+    
+    wayforests = [];
+    relationforests = [];
+    
+    wayplants = [];
+    relationplants = [];
+    
+    takenways = [];
+
+    for( var i=0; i<elements.length; i++ ) {
+        var element = elements[i];
+        
+        if (element["type"] == "relation") {
+            if (("building" in element["tags"] || "building:part" in element["tags"])) {
+                //Relation buildings (references ways)
+                relationbuildings.push(element);
+            }
+            else if (element["tags"]["landuse"] == "forest" || element["tags"]["natural"] == "wood") {
+                relationforests.push(element);
+            }
+            
+            else if (element["tags"]["natural"] == "scrub" || element["tags"]["leisure"] == "park" || element["tags"]["landuse"] == "meadow" || element["tags"]["landuse"] == "grass") {
+                relationplants.push(element);
+            }
+            
+            if ("members" in element) {
+                for (var j=0; j < element["members"].length; j++) {
+                    takenways.push(element["members"][j]["ref"]);
+                }
+            }
+        }
+    }
+    for( var i=0; i<elements.length; i++ ) {
+        var element = elements[i];    
+        if (element["type"] == "way"){
+            if ("tags" in element && takenways.indexOf(element["id"]) < 0) {
+                if ("building" in element["tags"] || "building:part" in element["tags"]) {
+                    //Ways which are buildings
+                    waybuildings.push(element);
+                }
+                else if (element["tags"]["landuse"] == "forest" || element["tags"]["natural"] == "wood") {
+                    wayforests.push(element);
+                }
+                
+                else if (element["tags"]["natural"] == "scrub" || element["tags"]["leisure"] == "park" || element["tags"]["landuse"] == "meadow" || element["tags"]["landuse"] == "grass") {
+                    wayplants.push(element);
+                }
+                
+                else {
+                    //Ways which are not buildings or forests (referenced by a relation)
+                    ways.push(element);
+                }
+            }
+            else {
+                ways.push(element);
+            }
+        }
+        
+        else if (element["type"] == "node") {
+            //Just nodes
+            nodes.push(element);
+        }
+    }
+}
+
+var getNode = function(id) {
+    //Gets a node (single point) by id
+    for( var i=0; i<nodes.length; i++ ) {
+        if (nodes[i]["id"] == id) {
+            return nodes[i];
+        }
+    }
+    return null;
+}
+
+var getWay = function(id) {
+    //Gets a way (collection of points) by id.
+    for( var i=0; i<ways.length; i++ ) {
+        if (ways[i]["id"] == id) {
+            return ways[i];
+        }
+    }
+    for( var i=0; i<waybuildings.length; i++ ) {
+        if (waybuildings[i]["id"] == id) {
+            return waybuildings[i];
+        }
+    }
+    for( var i=0; i<wayforests.length; i++ ) {
+        if (wayforests[i]["id"] == id) {
+            return wayforests[i];
+        }
+    }
+    return null;
+}
+
+var removeAll = function(target) {
+    //Removes all objects in target
+    for (var i = target.length - 1; i >= 0 ; i -- ) {
+        target[i].remove();
+    }
+    target = [];
+    return target;
+}
+
+var orderNodes = function(ways_array) {
+    //Apparently ways in relations aren't always in the right order so we need to order them.
+    var used_ways = [];
+    
+    var actual_nodes = [];
+    var way = ways_array[0];  //First way
+    //console.log(way);
+    //console.log(way);
+    var nextnode = way[way.length-1]; //Last node of the first way
+    
+    actual_nodes = actual_nodes.concat(way);
+    used_ways.push(0);
+    stopper = 0;
+    while (used_ways.length < ways_array.length && stopper < 500) {
+        stopper ++;
+        for (var i = 0; i < ways_array.length; i++) {
+            if (used_ways.indexOf(i) > -1) {
+                continue;
+            }
+            else {
+                way = ways_array[i];
+                if (way[0] == nextnode) {
+                    way.splice(0, 1);
+                    actual_nodes = actual_nodes.concat(way);
+                    used_ways.push(i);
+                    nextnode = way[way.length-1];
+                    break;
+                }
+                else if (way[way.length-1] == nextnode) {
+                    way.reverse();
+                    way.splice(0, 1);
+                    actual_nodes = actual_nodes.concat(way);
+                    used_ways.push(i);
+                    nextnode = way[way.length-1];
+                    break;
+                }
+            }
+        }
+    }
+    //console.log(actual_nodes);
+    if (stopper != 500) {
+        return actual_nodes;
+    }
+    else {
+        return null;
+    }
+}

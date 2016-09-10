@@ -1,0 +1,134 @@
+<html>
+	<head>
+		<script src="/static/jquery-2.1.4.min.js"></script>
+		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&sensor=false"></script>
+		<script language="javascript">
+			var geocoder;
+			var time = 0;
+			//var place_types = ['grocery_or_supermarket', 'home_goods_store', 'restaurant', 'cafe', 'movie_theater', 'art_gallery', 'gym', 'hair_care'];
+			var place_types = ['school', 'university', 'bowling_alley', 'casino', 'night_club', 'spa', 'stadium', 'shopping_mall'];
+			var mapOptions = {
+			  center: new google.maps.LatLng(65.020532, 25.497628),
+			  zoom: 13,
+			  disableDefaultUI: true
+			};
+			var map;
+			$(function(){
+				map = new google.maps.Map(document.getElementById('map_panel'), mapOptions);
+				var point_of_interest_service = new google.maps.places.PlacesService(map);
+				
+				for (j=0; j<place_types.length; j++)
+				{
+					var place_type = place_types[j];
+					var request = {
+						//the location from which the search is done (this could be changed to ubihotspot's location later)
+						location: new google.maps.LatLng(65.020532, 25.497628),
+							
+						//radius for the places to show up
+						radius: 10000,
+							
+						//set the type of places to search
+						types: [place_types[j]]
+					};
+					
+					point_of_interest_service.radarSearch(request, function(results, status, pagination)
+					{
+						console.log(place_types[j]);
+						if (status == google.maps.places.PlacesServiceStatus.OK)
+						{
+							
+							for (var i = 0; i < results.length; i++) 
+							{
+								$.ajax({
+									type: "POST",
+									url: "/insert_leisure_place",
+									data: JSON.stringify({ 	place_id: results[i].place_id}),
+									cache: false,
+									dataType: "json",
+									success: function(new_json) 
+									{
+										//console.log(new_json);
+									}
+								});
+							}
+							
+						}
+					});
+					
+				}
+			});
+			
+			function get_place()
+			{
+				place_type = $('#place_type').val();
+				
+				
+				var request = {
+					//the location from which the search is done (this could be changed to ubihotspot's location later)
+					location: new google.maps.LatLng(65.020532, 25.497628),
+						
+					//radius for the places to show up
+					radius: 10000,
+						
+					//set the type of places to search
+					types: [place_type]
+				};
+
+				var point_of_interest_service = new google.maps.places.PlacesService(map);
+
+				point_of_interest_service.nearbySearch(request, function(results, status, pagination)
+				{
+
+					if (status == google.maps.places.PlacesServiceStatus.OK)
+					{
+					
+						for (var i = 0; i < results.length; i++) 
+						{
+							$.ajax({
+								type: "POST",
+								url: "/insert_leisure_place",
+								data: JSON.stringify({ 	name : results[i].name, 
+														address: results[i].vicinity,
+														lat:results[i].geometry.location.A, 
+														lon:results[i].geometry.location.F,
+														type: place_type}),
+								cache: false,
+								dataType: "json",
+								success: function(new_json) 
+								{
+									console.log(new_json);
+								}
+							});
+						}
+						if (pagination.hasNextPage)
+						{
+							setTimeout(function () {
+								pagination.nextPage();
+							}, 3000);
+						}
+					}
+				});
+				
+			}
+		</script>
+		<style type="text/css">
+			img.wp-smiley,
+			img.emoji {
+				display: inline !important;
+				border: none !important;
+				box-shadow: none !important;
+				height: 1em !important;
+				width: 1em !important;
+				margin: 0 .07em !important;
+				vertical-align: -0.1em !important;
+				background: none !important;
+				padding: 0 !important;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="map_panel" style="width:200px;height:200px;"></div>
+		<input id="place_type"/>
+		<input type="button" onclick="javascript:get_place();" value="Get Places"/>
+	</body>
+</html>

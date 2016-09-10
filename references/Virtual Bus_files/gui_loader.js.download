@@ -1,0 +1,145 @@
+//Load gui.html into the index page
+$(function(){
+      $("#gui").load("gui.html"); 
+      
+});
+
+var sidebarShown = true;
+function showOrHideSidebar(){
+    if(sidebarShown){
+        hideSidebar();
+    }else{
+        showSidebar();
+    }
+    
+}
+
+function showSidebar(){
+    $('#sidebar').animate({left:'0px'},500);
+    sidebarShown = true;
+}
+function hideSidebar(){
+     $('#sidebar').animate({left:'-170px'},500);
+     sidebarShown = false;
+}
+
+function showRightSidebar(){
+    $('#sidebar_right').animate({right:'0px'},500);
+}
+function hideRightSidebar(){
+     $('#sidebar_right').animate({right:'-250px'},500);
+}
+
+function updateSidebarInfo(stop_id, stop_name){
+    getStopTimetablesById(stop_id);
+    
+     $('#stop_name_header').empty();
+     $('#stop_name_header').append(stop_name);
+         
+}
+
+function showHelp(){
+    $('#helpbar').animate({top:'0px'},300);
+}
+function hideHelp(){
+    $('#helpbar').animate({top:'-2000px'},500);
+}
+
+
+function isTripServed(tid){
+    //console.log(tid);
+    
+    sid = getTripServiceById(tid);
+    
+    //console.log(sid);
+    
+    if($.inArray(sid, todayServices) !== -1){
+        return true;
+    }
+
+    return false;    
+}
+
+
+function formatHours(t) {
+    var bits = t.split(':');
+    if (bits[0] > 23) {
+        bits[0] = '0'+(bits[0]-24);
+    }
+    return (bits[0]+':'+bits[1]+':'+bits[2]);
+}
+
+function insertTimetableToSidebar(data){
+    $('#stop_timetables_table').empty();
+    
+    var temp_data = [];
+    
+    var current_time = new Date();
+    
+    var current_time_string = current_time.getHours() + ":" + current_time.getMinutes() +":00";
+    
+    $.each(data, function(key, value) {
+        if(current_time_string < value.arrival_time){
+            if(isTripServed(value.trip_id)){
+                temp_data.push(value);
+            }   
+        }
+    });
+    
+    temp_data.sort(function(a, b){
+        if(a.arrival_time < b.arrival_time) return -1;
+        if(a.arrival_time > b.arrival_time) return 1;
+        return 0;
+    });
+    
+    $.each(temp_data, function(key, value) {
+        var routenumber = getRouteByTrip(value.trip_id);   
+        var routeshortname = getRouteShortNameById(routenumber);
+        value.arrival_time = formatHours(value.arrival_time);
+        $('#stop_timetables_table')
+        .append($("<tr></tr>")
+        // Hide the seconds, we have (hh:mm::ss)
+        .append($("<td>"+routeshortname + "</td><td>"+value.arrival_time.substr(0,5)+"</td>")));
+    
+    });
+         
+}
+
+function showRouteById(e, routeid){
+    var v1 = getShapeAndDraw(routeid, true);
+    var v2 = getShapeAndDraw(routeid, false);
+    
+    getStopsAndDraw(routeid, true);
+    
+    if(v1 || v2){
+        e.style.background = 'blue';
+    }else{
+    e.style.background = '';
+    }
+}
+
+function insertRoutesToList(r){
+
+    r.sort(function(a,b){return a.route_id-b.route_id});
+    
+    $.each(r, function(key, value) {   
+
+         $('#route_buttons_container')
+         .append($("<button></button>")
+         .attr("onclick", 'showRouteById(this,"' + value.route_id + '")')
+         .text(value.route_short_name)); 
+         
+         
+    }); 
+}
+
+(function wait2() {
+    if ( routes != null ) {
+        //when routes are loaded, insert them to gui
+        insertRoutesToList(routes);
+
+    } else {
+        //Wait 500 milliseconds
+        setTimeout( wait2, 500 );
+    }
+})();

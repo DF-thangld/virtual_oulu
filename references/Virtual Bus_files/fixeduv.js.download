@@ -1,0 +1,51 @@
+FixedUVGenerator = {
+     //This doesn't stretch textures. Original: https://github.com/mrdoob/three.js/blob/master/src/extras/geometries/ExtrudeGeometry.js
+	generateTopUV: function ( geometry, indexA, indexB, indexC ) {
+
+		var vertices = geometry.vertices;
+
+		var a = vertices[ indexA ];
+		var b = vertices[ indexB ];
+		var c = vertices[ indexC ];
+
+		return [
+			new THREE.Vector2( a.x, a.y ),
+			new THREE.Vector2( b.x, b.y ),
+			new THREE.Vector2( c.x, c.y )
+		];
+
+	},
+
+	generateSideWallUV: function ( geometry, indexA, indexB, indexC, indexD ) {
+
+		var vertices = geometry.vertices;
+
+		var a = vertices[ indexA ];
+		var b = vertices[ indexB ];
+		var c = vertices[ indexC ];
+		var d = vertices[ indexD ];
+        
+        var angle = Math.atan( Math.abs((a.y - b.y) / (a.x - b.x)));
+        //console.log("y: " + (a.y-b.y));
+        //console.log("x: " + (a.x-b.x));
+        //console.log("y: " + (a.y-b.y) + " x: " + (a.x-b.x) + " angle: " + angle);
+		if (angle < (Math.PI/4) ) { //The original simply checked the difference between y values, here we actually check the angle.
+			return [
+				new THREE.Vector2( a.x, 1 - a.z ),
+				new THREE.Vector2( b.x, 1 - b.z ),
+				new THREE.Vector2( c.x, 1 - c.z ),
+				new THREE.Vector2( d.x, 1 - d.z )
+			];
+
+		} else {
+			return [
+				new THREE.Vector2( a.y, 1 - a.z ),
+				new THREE.Vector2( b.y, 1 - b.z ),
+				new THREE.Vector2( c.y, 1 - c.z ),
+				new THREE.Vector2( d.y, 1 - d.z )
+			];
+
+		}
+
+	}
+};

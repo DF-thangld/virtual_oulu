@@ -1,0 +1,21 @@
+#
+DATABASE_FILE = 'data/data.sqlite'
+NETWORK_FILE = 'data/plain_network/oulu.edg.xml'
+NETWORK_NODE_FILE = 'data/plain_network/oulu.nod.xml'
+SUMO_DIR = '../Sumo'
+SUMO_NETWORK_FILE = 'data/oulu.net.xml'
+SIMULATION_CONFIG_FILE = 'data/oulu.sumocfg'
+
+MAX_DISTANCE = 5
+DISTANCE_TO_STOP = 2
+DAY_STARTING_TIME = 0
+REFRESH_RATE = 1 #1 second in real world equal to 1 second in simulation
+NUMBER_PEOPLE_CONTROLLERS = 1
+DAY_CYCLE = 3600*24
+
+SUMO_PORT = 9952
+
+PEOPLE_COUNT = 10000 
+
+TIME_START = 8*3600
+TOTAL_PEOPLE = 3000
