@@ -8,7 +8,7 @@ from flask import Flask, render_template, Response, request
 import json
 import sqlite3
 try:
-    from flask.ext.cors import CORS  # The typical way to import flask-cors
+    from flask_cors import CORS  # The typical way to import flask-cors
 except ImportError:
     # Path hack allows examples to be run without installation.
     import os
@@ -19,7 +19,8 @@ except ImportError:
 
 if __name__ == "__main__":
     traffic_manager = TrafficManager()
-    #traffic_manager.generate_new_data(20000, 3)
+    if (config.ALWAYS_RELOAD_PEOPLE):
+        traffic_manager.generate_new_data(config.PEOPLE_COUNT)
     #traffic_manager.create_route_file()
     
     traffic_manager.start()

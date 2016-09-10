@@ -24,7 +24,6 @@ import utility
 from person import Person
 import config
 import traci_helper
-import logging_detail
 
 #import sumo dir
 tools = os.path.join(config.SUMO_DIR, 'tools')
@@ -1166,11 +1165,18 @@ class TrafficManager(threading.Thread):
 		
 	def load_people(self, number_of_people=0):
 		#refresh people list
-		self.people = []
+
 		#connect database
 		conn = sqlite3.connect(self.database_file)
 		conn.row_factory = sqlite3.Row
 		cur = conn.cursor()
+
+		#get current date
+		current_date = (int)((self.simulating_time/1000)/(3600*24))
+		current_hour = ((self.simulating_time/1000) - current_date*(3600*24))/3600
+		if (current_hour > 10):
+			current_date += 1
+		time_gap = current_date*3600*24
 		
 		#get people information
 		people_query = 'select * from people ORDER BY RANDOM() '
@@ -1216,6 +1222,9 @@ class TrafficManager(threading.Thread):
 			cur.execute(day_plan_query, (person.id, ))
 			rows_day_plans = cur.fetchall()
 			for row_day_plans in rows_day_plans:
+				action_time = row_day_plans['time']
+				if (action_time != -1):
+					action_time += time_gap
 				person.day_plan.append({'action_id': row_day_plans['action_id'].encode('ascii','ignore'),
 										'sequence' : row_day_plans['sequence'],
 										'type': row_day_plans['type'],
@@ -1225,7 +1234,7 @@ class TrafficManager(threading.Thread):
 										'to_edge_id' : row_day_plans['to_edge_id'],
 										'edges' : row_day_plans['route'],
 										'duration': row_day_plans['duration'],
-										'time': row_day_plans['time'],
+										'time': action_time,
 										'vehicle': person.vehicle})
 			
 			#assign person to people list
@@ -1365,12 +1374,13 @@ class TrafficManager(threading.Thread):
 	def prepare_next_action(self, person, current_time):
 		if len(person.day_plan) > 1:
 			if person.day_plan[1]['time'] == -1:
-				person.day_plan[1]['time'] = person.day_plan[0]['time'] + person.day_plan[0]['duration'] + 5
+				person.day_plan[1]['time'] = person.day_plan[0]['time'] + person.day_plan[0]['duration'] + 300
 			if person.day_plan[1]['type'] == 'MOVING':
 				if person.day_plan[1]['edges'] is not None:
 					try:
 						traci_helper.add_vehicle(person.day_plan[1])
 					except:
+						logger.error(str(traci_helper.get_simulate_time()) + '-' + str(self.simulating_time) + ' - ' + str(person.id) + ' - ' + str(person.day_plan[1]['action_id']))
 						person.day_plan[1]['edges'] = None
 						person.day_plan[1]['duration'] = 30*60
 				else:
@@ -1428,12 +1438,12 @@ class TrafficManager(threading.Thread):
 			
 		for person in self.people:
 			if (len(person.day_plan) == 0):
-				person.current_day += 1
-				self.generate_day_plan(person)
+				#person.current_day += 1
+				#self.generate_day_plan(person)
 				#self.update_person(person, conn)
 				
 				#self.prepare_next_action(person, current_time)
-				#self.people.remove(person)
+				self.people.remove(person)
 			elif person.day_plan[0]['type'] == 'MOVING':
 				if person.day_plan[0]['edges'] is None:
 					person.day_plan[0]['duration'] = 30*60
@@ -1456,7 +1466,10 @@ class TrafficManager(threading.Thread):
 				#self.save_current_action(person.day_plan[0], conn)
 				#remove the action
 				self.prepare_next_action(person, current_time)
-			
+
+		remaining_people_count = len(self.people)
+		if (remaining_people_count < config.TOTAL_PEOPLE):
+			self.load_people(config.TOTAL_PEOPLE - remaining_people_count)
 		conn.commit()
 		conn.close()
 	
@@ -1495,7 +1508,7 @@ class TrafficManager(threading.Thread):
 			
 		# actually run the simulation
 		current_dir = os.path.dirname(os.path.realpath('__file__'))
-		sumo_command = self.sumo_dir + '/bin/sumo --step-length 0.1 --begin ' + str(soonest_time-20) + ' --end ' + str(soonest_time-10)
+		sumo_command = self.sumo_dir + '/bin/sumo --step-length ' +str(config.TIME_PER_STEP) + ' --begin ' + str(soonest_time-20) + ' --end ' + str(soonest_time-10)
 		sumo_command += ' --configuration-file ' + current_dir + '/' + self.simulation_config_file 
 		sumo_command += ' --remote-port ' + str(self.sumo_port)
 		p = Process(target=os.system, args=(sumo_command,))
@@ -1534,14 +1547,14 @@ class TrafficManager(threading.Thread):
 			
 			total_time = 0
 			refresh_rate = 1
-			'''refresh_rate = config.REFRESH_RATE
+			refresh_rate = config.REFRESH_RATE
 			simulation_time = float(self.simulating_time)/1000
 			if simulation_time < real_life_time_second:
 				refresh_rate = 128
 				#logger.error('128:' + str(simulation_time) + ':' + str(real_life_time_second))
 			else:
 				refresh_rate = config.REFRESH_RATE
-				#logger.error('config.REFRESH_RATE' + ':' + str(config.REFRESH_RATE) + ':' + str(simulation_time))'''
+				#logger.error('config.REFRESH_RATE' + ':' + str(config.REFRESH_RATE) + ':' + str(simulation_time))
 			
 			
 			while total_time < 20:
@@ -1553,13 +1566,14 @@ class TrafficManager(threading.Thread):
 				traci.simulationStep(self.simulating_time)
 				self.get_vehicles_position()
 				self.process_traci_action_queue()
+				self.control_people()
 				end = time.time()
 				duration = (end - start)*1000*refresh_rate
 				total_time += duration
 				#logger.error(str(duration))
 				#print(duration, total_time)
 				#time.sleep(float(duration)/float(1000))
-			self.control_people()
+
 		traci.close()
 		conn.commit()
 		conn.close()
