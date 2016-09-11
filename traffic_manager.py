@@ -1225,7 +1225,8 @@ class TrafficManager(threading.Thread):
                 action_time = row_day_plans['time']
                 if (action_time != -1):
                     action_time += time_gap
-                person.day_plan.append({'action_id': row_day_plans['action_id'].encode('ascii','ignore'),
+
+                action = {'action_id': row_day_plans['action_id'].encode('ascii','ignore'),
                                         'sequence' : row_day_plans['sequence'],
                                         'type': row_day_plans['type'],
                                         'from_place_id': row_day_plans['from_place_id'],
@@ -1235,7 +1236,38 @@ class TrafficManager(threading.Thread):
                                         'edges' : row_day_plans['route'],
                                         'duration': row_day_plans['duration'],
                                         'time': action_time,
-                                        'vehicle': person.vehicle})
+                                        'vehicle': person.vehicle}
+
+                person.day_plan.append(action)
+
+            if (config.USE_REAL_TIME and current_date == 0):
+                person.is_real_time = False
+                current_time = datetime.datetime.now()
+                current_time_in_second = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
+                total_action = len(person.day_plan)
+                for i in range(0, total_action - 1):
+                    # if person already in realtime mode => next person
+                    if person.is_real_time:
+                        break
+
+                    # if action has start time and duration ready => continue for next action
+                    current_action = person.day_plan[i]
+
+                    if current_action['type'] == 'MOVING':
+                        # when loading people, first action is never moving, so it is good
+                        if current_action['time'] + config.DEFAULT_MOVING_TIME > current_time_in_second:
+                            current_action['duration'] = config.DEFAULT_MOVING_TIME
+                        else:
+                            person.is_real_time = True
+
+                    if current_action['time'] > -1 and current_action['duration'] > -1:
+                        if i < total_action-1 and person.day_plan[i+1]['time'] == -1:
+                            person.day_plan[i + 1]['time'] = current_action['time'] + current_action['duration'] + 300
+                        continue
+
+                    if current_action['time'] > current_time_in_second or i == total_action - 1:
+                        person.is_real_time = True
+                        break
 
             #assign person to people list
             self.people.append(person)
@@ -1337,10 +1369,11 @@ class TrafficManager(threading.Thread):
         conn = sqlite3.connect(self.database_file)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
-        cur.execute('delete from people')
-        cur.execute('delete from day_plans')
-        cur.execute('vacuum')
-        conn.commit()
+        if (config.DELETE_OLD_DATA):
+            cur.execute('delete from people')
+            cur.execute('delete from day_plans')
+            cur.execute('vacuum')
+            conn.commit()
 
         for i in range(0, number_of_people):
             person = self.create_random_person(number_of_day)
@@ -1375,7 +1408,7 @@ class TrafficManager(threading.Thread):
         if len(person.day_plan) > 1:
             if person.day_plan[1]['time'] == -1:
                 person.day_plan[1]['time'] = person.day_plan[0]['time'] + person.day_plan[0]['duration'] + 300
-            if person.day_plan[1]['type'] == 'MOVING':
+            if person.day_plan[1]['type'] == 'MOVING' and person.day_plan[1]['duration'] > -1:
                 if person.day_plan[1]['edges'] is not None:
                     try:
                         traci_helper.add_vehicle(person.day_plan[1])
@@ -1444,6 +1477,7 @@ class TrafficManager(threading.Thread):
 
                 #self.prepare_next_action(person, current_time)
                 self.people.remove(person)
+                print('remove person ' + person.id)
             elif person.day_plan[0]['type'] == 'MOVING':
                 if person.day_plan[0]['edges'] is None:
                     person.day_plan[0]['duration'] = 30*60
@@ -1470,6 +1504,7 @@ class TrafficManager(threading.Thread):
         remaining_people_count = len(self.people)
         if (remaining_people_count < config.TOTAL_PEOPLE):
             self.load_people(config.TOTAL_PEOPLE - remaining_people_count)
+            print('load people: ' + str(config.TOTAL_PEOPLE - remaining_people_count))
         conn.commit()
         conn.close()
 
@@ -1525,14 +1560,10 @@ class TrafficManager(threading.Thread):
         if (config.USE_REAL_TIME):
             current_time = datetime.datetime.now()
             current_time_in_second = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
-            if current_time_in_second < soonest_time:
-                traci.simulationStep((current_time_in_second - 5) * 1000)
-                self.current_step = current_time_in_second - 5
-                self.simulating_time = (current_time_in_second - 5) * 1000
-            else:
-                traci.simulationStep((soonest_time - 5) * 1000)
-                self.current_step = soonest_time - 5
-                self.simulating_time = (soonest_time - 5) * 1000
+
+            traci.simulationStep((current_time_in_second - 1800) * 1000)
+            self.current_step = current_time_in_second - 1800
+            self.simulating_time = (current_time_in_second - 1800) * 1000
 
         elif soonest_time < config.TIME_START:
             traci.simulationStep((soonest_time-5)*1000)
@@ -1559,11 +1590,11 @@ class TrafficManager(threading.Thread):
                         current_time = datetime.datetime.now()
                         current_time_in_second = current_time.hour*3600 + current_time.minute*60 + current_time.second
                         if (self.simulating_time/1000 < current_time_in_second-5000):
-                            refresh_rate = 128
+                            refresh_rate = config.MAX_REFRESH_RATE
                         elif (self.simulating_time/1000 < current_time_in_second):
                             refresh_rate = (int)((current_time_in_second - self.simulating_time/1000)/2)
-                            if (refresh_rate > 128):
-                                refresh_rate = 128
+                            if (refresh_rate > config.MAX_REFRESH_RATE):
+                                refresh_rate = config.MAX_REFRESH_RATE
                             elif (refresh_rate <= config.REFRESH_RATE):
                                 refresh_rate = config.REFRESH_RATE
                                 is_using_realtime = True
@@ -1573,11 +1604,14 @@ class TrafficManager(threading.Thread):
 
                 start = time.time()
                 #time.sleep(1/config.REFRESH_RATE)
+
                 self.current_step += 1
                 self.simulating_time += duration
                 traci.simulationStep(self.simulating_time)
+
                 self.get_vehicles_position()
                 self.process_traci_action_queue()
+
                 self.control_people()
                 end = time.time()
                 duration = (end - start)*1000*refresh_rate
