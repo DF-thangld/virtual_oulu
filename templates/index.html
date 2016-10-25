@@ -105,7 +105,7 @@
 		function format_time(time_in_second)
 		{
 			time_in_second = Math.floor(time_in_second);
-			time_in_second = time_in_second - (Math.floor((time_in_second/24/3600)) * 24*3600;
+			time_in_second = time_in_second - Math.floor(time_in_second/24/3600)*24*3600;
 			current_hour = Math.floor(time_in_second/3600);
 			current_minute = Math.floor((time_in_second - current_hour*3600)/60);
 			current_second = time_in_second - current_hour*3600 - current_minute*60;

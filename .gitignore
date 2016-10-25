@@ -8,9 +8,13 @@ python2
 python2.7
 *.pyc
 *.log
+.Python
 config.py
 Include
 Lib
 Scripts
+bin
+include
+lib
 tcl
 tmp

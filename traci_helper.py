@@ -1,9 +1,9 @@
 import threading, os, sys, time
 import config
 import utility
-tools = os.path.join(config.SUMO_DIR, 'tools')
+tools = os.path.join(os.getcwd(), 'sumo_tools')
 sys.path.append(tools)
-import traci  # @UnresolvedImport
+import traci as traci  # @UnresolvedImport
 import traci.constants as tc  # @UnresolvedImport
 import traci.route # @UnresolvedImport
 import traci.vehicle # @UnresolvedImport
