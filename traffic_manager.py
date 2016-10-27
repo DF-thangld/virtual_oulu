@@ -1255,7 +1255,7 @@ class TrafficManager(threading.Thread):
 
                     if current_action['type'] == 'MOVING':
                         # when loading people, first action is never moving, so it is good
-                        if current_action['time'] + config.DEFAULT_MOVING_TIME > current_time_in_second:
+                        if current_action['time'] + 2*config.DEFAULT_MOVING_TIME > current_time_in_second:
                             current_action['duration'] = config.DEFAULT_MOVING_TIME
                         else:
                             person.is_real_time = True
@@ -1469,6 +1469,24 @@ class TrafficManager(threading.Thread):
         current_day = traci_helper.get_current_day()
         self.get_vehicles_position()
 
+        if (config.MINUMUM_VEHICLES > 0):
+            running_vehicles_count = len(self.vehicles_positions)
+            if running_vehicles_count < config.MINUMUM_VEHICLES:
+                sql = "select * from day_plans where type='MOVING' and route is not null ORDER BY RANDOM() limit " + str(config.MINUMUM_VEHICLES - running_vehicles_count)
+                cur.execute(sql)
+                actions = cur.fetchall()
+                for row_day_plans in actions:
+                    action_time = row_day_plans['time']
+                    action = {'action_id': utility.generate_random_string(20),
+                              'edges': row_day_plans['route'],
+                              'time': traci_helper.get_current_time()+1,
+                              'vehicle': 'default_car'}
+                    try:
+                        traci_helper.add_vehicle(action)
+                    except:
+                        pass
+
+
         for person in self.people:
             if (len(person.day_plan) == 0):
                 #person.current_day += 1
@@ -1561,9 +1579,9 @@ class TrafficManager(threading.Thread):
             current_time = datetime.datetime.now()
             current_time_in_second = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
 
-            traci.simulationStep((current_time_in_second - 1800) * 1000)
-            self.current_step = current_time_in_second - 1800
-            self.simulating_time = (current_time_in_second - 1800) * 1000
+            traci.simulationStep((current_time_in_second - 4000) * 1000)
+            self.current_step = current_time_in_second - 4000
+            self.simulating_time = (current_time_in_second - 4000) * 1000
 
         elif soonest_time < config.TIME_START:
             traci.simulationStep((soonest_time-5)*1000)
@@ -1589,12 +1607,12 @@ class TrafficManager(threading.Thread):
                     if (not is_using_realtime):
                         current_time = datetime.datetime.now()
                         current_time_in_second = current_time.hour*3600 + current_time.minute*60 + current_time.second
-                        if (self.simulating_time/1000 < current_time_in_second-5000):
+                        if (self.simulating_time/1000 < current_time_in_second-3600):
                             refresh_rate = config.MAX_REFRESH_RATE
                         elif (self.simulating_time/1000 < current_time_in_second):
-                            refresh_rate = (int)((current_time_in_second - self.simulating_time/1000)/2)
-                            if (refresh_rate > config.MAX_REFRESH_RATE):
-                                refresh_rate = config.MAX_REFRESH_RATE
+                            refresh_rate = (float)((current_time_in_second - (float)(self.simulating_time/1000))/3600/2)*config.MAX_REFRESH_RATE
+                            if (refresh_rate > config.REFRESH_RATE and refresh_rate < 2*config.REFRESH_RATE):
+                                refresh_rate = 2*config.REFRESH_RATE
                             elif (refresh_rate <= config.REFRESH_RATE):
                                 refresh_rate = config.REFRESH_RATE
                                 is_using_realtime = True
@@ -1609,7 +1627,6 @@ class TrafficManager(threading.Thread):
                 self.simulating_time += duration
                 traci.simulationStep(self.simulating_time)
 
-                self.get_vehicles_position()
                 self.process_traci_action_queue()
 
                 self.control_people()

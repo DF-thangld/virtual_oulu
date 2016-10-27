@@ -26,7 +26,7 @@
 		  // double click event to create congestion
 		  map.addListener('click', function(e) {
 		  	$.ajax({
-				url: "congest_edge/" + e.latLng.G.toString() + '/' + e.latLng.K.toString(),
+				url: "congest_edge/" + e.latLng.lat().toString() + '/' + e.latLng.lng().toString(),
 				cache: false,
 				dataType: "json",
 				success: function(data)
