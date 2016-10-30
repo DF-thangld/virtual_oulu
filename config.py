@@ -2,6 +2,8 @@ DATABASE_FILE = 'data/data.sqlite'
 NETWORK_FILE = 'data/plain_network/oulu.edg.xml'
 NETWORK_NODE_FILE = 'data/plain_network/oulu.nod.xml'
 SUMO_DIR = 'E:\Documents\Projects\sumo-0.23.0'
+SUMO_APP_DIR = '/opt/local/bin/sumo'
+DUAROUTER_APP_DIR = '/opt/local/bin/duarouter'
 SUMO_NETWORK_FILE = 'data/oulu.net.xml'
 SIMULATION_CONFIG_FILE = 'data/oulu.sumocfg'
 

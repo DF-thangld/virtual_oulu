@@ -1335,7 +1335,7 @@ class TrafficManager(threading.Thread):
 
 
         #generate route file by using duarouter
-        duarouter_command = self.sumo_dir + '/bin/duarouter '
+        duarouter_command = config.DUAROUTER_APP_DIR
         duarouter_command += ' --trip-files ' + tmp_dir + all_trip_file_name
         duarouter_command += ' --net-file ' + current_dir + '/' + self.sumo_network_file
         duarouter_command += ' --output-file ' + tmp_dir + all_route_file_name
@@ -1562,7 +1562,7 @@ class TrafficManager(threading.Thread):
 
         # actually run the simulation
         current_dir = os.path.dirname(os.path.realpath('__file__'))
-        sumo_command = self.sumo_dir + '/bin/sumo --step-length ' +str(config.TIME_PER_STEP) + ' --begin ' + str(soonest_time-20) + ' --end ' + str(soonest_time-10)
+        sumo_command = config.SUMO_APP_DIR + ' --step-length ' +str(config.TIME_PER_STEP) + ' --begin ' + str(soonest_time-20) + ' --end ' + str(soonest_time-10)
         sumo_command += ' --configuration-file ' + current_dir + '/' + self.simulation_config_file
         sumo_command += ' --remote-port ' + str(self.sumo_port)
         p = Process(target=os.system, args=(sumo_command,))
