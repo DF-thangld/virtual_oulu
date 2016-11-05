@@ -1450,13 +1450,16 @@ class TrafficManager(threading.Thread):
         for congested_place in self.congested_places:
             suspected_vehicles = []
             for vehicle in self.vehicles_positions:
-                if vehicle['current_edge_id'] == congested_place['edge_id']:
-                    suspected_vehicles.append(vehicle)
-            #query(self.vehicles_positions).take_while(lambda vehicle: vehicle['current_edge_id'] == congested_place['edge_id']).to_list()
-            for vehicle in suspected_vehicles:
                 distance = utility.measure_distance(vehicle['x'], vehicle['y'], congested_place['x'], congested_place['y'])
                 if distance <= config.DISTANCE_TO_STOP:
                     self.traci_action_queue.append({'action': 'STOP_VEHICLE', 'parameter': {'vehicle_id': vehicle['vehicle_id']}})
+                #if vehicle['current_edge_id'] == congested_place['edge_id']:
+                #    suspected_vehicles.append(vehicle)
+            #query(self.vehicles_positions).take_while(lambda vehicle: vehicle['current_edge_id'] == congested_place['edge_id']).to_list()
+            #for vehicle in suspected_vehicles:
+            #    distance = utility.measure_distance(vehicle['x'], vehicle['y'], congested_place['x'], congested_place['y'])
+            #    if distance <= config.DISTANCE_TO_STOP:
+            #        self.traci_action_queue.append({'action': 'STOP_VEHICLE', 'parameter': {'vehicle_id': vehicle['vehicle_id']}})
 
 
     def control_people(self):

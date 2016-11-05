@@ -70,3 +70,6 @@ def get_vehicle_angle(vehicle_id):
         
 def set_vehicle_speed(vehicle_id, speed):
     traci.vehicle.setSpeed(vehicle_id, speed)
+
+def stop(vehicle_id, edge_id):
+    traci.vehicle.slowDown(vehicle_id, 0.0, 1)

@@ -65,10 +65,26 @@ if __name__ == "__main__":
                            'shape': row['shape']})
         conn.close()
         return Response(json.dumps(result), 200, mimetype='application/json')
-    
+
+    @app.route('/delete_congestion/<congestion_id>')
+    def delete_congestion(congestion_id):
+        congestion_count = len(traffic_manager.congested_places)
+        for i in range(0, congestion_count-1):
+            if traffic_manager.congested_places[i]['id'] == congestion_id:
+                del traffic_manager.congested_places[i]
+                return Response(json.dumps({'success': True, 'congestion_id': congestion_id}), 200, mimetype='application/json')
+
+        return Response(json.dumps({'success': False, 'congestion_id': congestion_id}), 404, mimetype='application/json')
+
+
     @app.route('/congest_edge/<lat>/<lon>')
     def congest_edge(lat, lon):
         (x, y) = traffic_manager.from_latlon(float(lat), float(lon))
+
+
+        traffic_manager.congested_places.append({'id': utility.generate_random_string(20), 'x': x, 'y': y, 'lat': lat, 'lon': lon})
+        return Response(json.dumps({'success': True}), 200, mimetype='application/json')
+
         connection = database.create_connection()
         
         size_to_check = 3
@@ -119,24 +135,6 @@ if __name__ == "__main__":
                        'min_lat_max_lon': {'lat': lat_3, 'lon': lon_3},
                        'min_lat_min_lon': {'lat': lat_4, 'lon': lon_4},
                        'edges': result_edges}
-        return Response(json.dumps(result_json), 200, mimetype='application/json')
-        
-    @app.route('/get_longest_line')
-    def get_longest_line():
-        connection = database.create_connection()
-        sql_script = 'select * from edges_full_data \
-                        where edge_id = "126734932#0" and sequence=1'
-        longest_line = database.query_one(sql_script, (), connection)
-        database.close_connection(connection, False)
-        
-        (from_lat, from_lon) = traffic_manager.to_latlon(longest_line['from_x'], longest_line['from_y'])
-        (to_lat, to_lon) = traffic_manager.to_latlon(longest_line['to_x'], longest_line['to_y'])
-        
-        result_json = {'from_lat': from_lat,
-                       'from_lon': from_lon,
-                       'to_lat': to_lat,
-                       'to_lon': to_lon,
-                       'shape': ''}
         return Response(json.dumps(result_json), 200, mimetype='application/json')
         
     
