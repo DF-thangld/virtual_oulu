@@ -1427,10 +1427,12 @@ class TrafficManager(threading.Thread):
             if self.vehicle_statuses[vehicle_id][86] != -1001:
                 vehicle_position = traci_helper.get_vehicle_position(vehicle_id)
                 vehicle_angle = traci_helper.get_vehicle_angle(vehicle_id)
+                vehicle_speed = traci_helper.get_vehicle_speed(vehicle_id)
                 if vehicle_position[0] != -1001 or vehicle_position[1] != -1001:
                     latlon_info = self.to_latlon(vehicle_position[0], vehicle_position[1])
                     vehicles_positions.append({"vehicle_id" : vehicle_id,
                                                 'vehicle_angle': vehicle_angle,
+                                                'speed': vehicle_speed,
                                                 "x" : vehicle_position[0],
                                                 "y" : vehicle_position[1],
                                                 "lat" : latlon_info[0],
@@ -1450,16 +1452,12 @@ class TrafficManager(threading.Thread):
         for congested_place in self.congested_places:
             suspected_vehicles = []
             for vehicle in self.vehicles_positions:
-                distance = utility.measure_distance(vehicle['x'], vehicle['y'], congested_place['x'], congested_place['y'])
-                if distance <= config.DISTANCE_TO_STOP:
-                    self.traci_action_queue.append({'action': 'STOP_VEHICLE', 'parameter': {'vehicle_id': vehicle['vehicle_id']}})
-                #if vehicle['current_edge_id'] == congested_place['edge_id']:
-                #    suspected_vehicles.append(vehicle)
-            #query(self.vehicles_positions).take_while(lambda vehicle: vehicle['current_edge_id'] == congested_place['edge_id']).to_list()
-            #for vehicle in suspected_vehicles:
-            #    distance = utility.measure_distance(vehicle['x'], vehicle['y'], congested_place['x'], congested_place['y'])
-            #    if distance <= config.DISTANCE_TO_STOP:
-            #        self.traci_action_queue.append({'action': 'STOP_VEHICLE', 'parameter': {'vehicle_id': vehicle['vehicle_id']}})
+                if vehicle['vehicle_id'] not in congested_place['vehicles']:
+                    distance = utility.measure_distance(vehicle['x'], vehicle['y'], congested_place['x'], congested_place['y'])
+                    if distance <= config.DISTANCE_TO_STOP:
+                        print('vehicle stop')
+                        congested_place['vehicles'].append({'id': vehicle['vehicle_id'], 'speed': vehicle['speed']})
+                        self.traci_action_queue.append({'action': 'STOP_VEHICLE', 'parameter': {'vehicle_id': vehicle['vehicle_id']}})
 
 
     def control_people(self):
@@ -1529,6 +1527,31 @@ class TrafficManager(threading.Thread):
         conn.commit()
         conn.close()
 
+    def add_congestion(self, lat, lng):
+        (x, y) = self.from_latlon(float(lat), float(lng))
+
+        lock = threading.RLock()
+        with lock:
+            self.congested_places.append({'id': utility.generate_random_string(20), 'x': x, 'y': y, 'lat': lat, 'lon': lng, 'vehicles': []})
+
+
+    def remove_congestion(self, id):
+        congestion_count = len(self.congested_places)
+        for i in range(0, congestion_count):
+            if self.congested_places[i]['id'] == id:
+                print(self.congested_places[i]['vehicles'])
+                # release vehicles obstructed by congestion
+                for vehicle in self.congested_places[i]['vehicles']:
+                    print(vehicle)
+                    self.traci_action_queue.append({'action': 'CHANGE_SPEED', 'parameter': {'vehicle_id': vehicle['id'], 'speed': vehicle['speed']}})
+
+                # remove congestion from list
+                lock = threading.RLock()
+                with lock:
+                    del self.congested_places[i]
+                    return
+                #return Response(json.dumps({'success': True, 'congestion_id': id}), 200, mimetype='application/json')
+
     def process_traci_action_queue(self):
         current_queue = None
         lock = threading.RLock()
@@ -1540,6 +1563,9 @@ class TrafficManager(threading.Thread):
                 traci_helper.add_congestion(action['parameter']['edge_id'], action['parameter']['position'])
             elif action['action'] == 'STOP_VEHICLE':
                 traci_helper.set_vehicle_speed(action['parameter']['vehicle_id'], 0)
+            elif action['action'] == 'CHANGE_SPEED':
+                print(action)
+                traci_helper.set_vehicle_speed(action['parameter']['vehicle_id'], action['parameter']['speed'])
 
     def run(self):
         #get soonest time to start the simulation

@@ -1,68 +1,50 @@
 var is_running = true;
-var marker = null;
+//var marker = null;
 var map = null;
 var markers = [];
 var lines = [];
 var places = {};
 var displaying_line = null;
-var place_marker = null;
+//var place_marker = null;
 var nodes = {};
 var vehicles = {};
 var congested_places = {};
+var infowindow = null;
 
 function initialize() {
-  var mapProp = {
-    center:new google.maps.LatLng(65.007234, 25.482090),
-    zoom:12,
-    mapTypeId:google.maps.MapTypeId.ROADMAP
-  };
-  map=new google.maps.Map(document.getElementById("map_area"),mapProp);
+    var mapProp = {
+        center:new google.maps.LatLng(65.007234, 25.482090),
+        zoom:12,
+        mapTypeId:google.maps.MapTypeId.ROADMAP
+    };
+    map = new google.maps.Map(document.getElementById("map_area"),mapProp);
 
-  // double click event to create congestion
-  map.addListener('click', function(e) {
-    $.ajax({
-        url: server + "congest_edge/" + e.latLng.lat().toString() + '/' + e.latLng.lng().toString(),
-        cache: false,
-        dataType: "json",
-        success: function(data)
-        {
-            console.log(data);
-            if (data['edges'].length > 0)
-                var marker = new google.maps.Marker({
-                    position: new google.maps.LatLng(data['lat_lon']['lat'], data['lat_lon']['lon']),
-                    map: map,
-                    icon: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
-                });
+    // refresh data every second
+    setInterval(function () {
+        if (is_running) {
+            refresh_car();
         }
+    }, 1000);
+
+    // rightclick event
+    google.maps.event.addListener(map, "rightclick", function(event) {
+        var lat = event.latLng.lat();
+        var lng = event.latLng.lng();
+        // populate yor box/field with lat, lng
+
+        if (infowindow) {
+            infowindow.close();
+        }
+
+        infowindow = new google.maps.InfoWindow({
+          content: '<a style="text-decoration:underline; cursor: pointer;" onclick="add_congestion(' + lat.toString() + ', ' + lng.toString() + '); return false;">Add congestion</a>'
+        });
+        infowindow.setPosition(event.latLng);
+
+        infowindow.open(map);
+
     });
-  });
-
-  // populate data to places combobox
-  /*$.ajax({
-        url: server + "get_places",
-        cache: false,
-        dataType: "json",
-        success: function(data)
-        {
-            var select = document.getElementById("places_combobox");
-            $.each(data, function( index, place ) {
-                places['place_' + place['id']] = place;
-                var opt = document.createElement('option');
-                opt.value = 'place_' + place['id'];
-                opt.innerHTML = place['name'];
-                select.appendChild(opt);
-            });
-        },
-        error: function (xhr, ajaxOptions, thrownError)
-        {
-            console.log(xhr);
-            console.log(ajaxOptions);
-            console.log(thrownError);
-        }
-  });*/
-
 }
-google.maps.event.addDomListener(window, 'load', initialize);
 
 function display_edge(edge)
 {
@@ -128,14 +110,19 @@ function refresh_car()
         dataType: "json",
         success: function(data)
         {
-            console.log(data);
             $('#current_time').html('Simulating time: ' + format_time(data['time']/1000));
 
             $.each(vehicles, function( index, vehicle ) {
-                vehicle.processed = false;
+                if (vehicle) {
+                    vehicle.processed = false;
+                }
+
             });
             $.each(congested_places, function( index, place ) {
-                place.processed = false;
+                if (place) {
+                    place.processed = false;
+                }
+
             });
 
             //process received vehicles
@@ -169,21 +156,28 @@ function refresh_car()
 
             //display congested places
             $.each(data['congested_places'], function( index, place ) {
-
                 var place_object = congested_places[place.id];
+                if (typeof(place_object) == 'undefined') //new congested place
+                {
 
-                if (typeof(place_object) == 'undefined') { //new congested place
 
-                    var infowindow = new google.maps.InfoWindow({
-                        content: "<a href='javascript:delete_congestion(\"" + place.id + "\");'>Delete congestion</a>"
-                    });
+
+
 
                     var marker = new google.maps.Marker({
                         position: new google.maps.LatLng(place['lat'], place['lon']),
                         map: map,
+                        optimized: false,
                         icon: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png'
                     });
-                    marker.addListener('click', function() {
+
+                    google.maps.event.addListener(marker, "click", function(event) {
+                        if (infowindow) {
+                            infowindow.close();
+                        }
+                        infowindow = new google.maps.InfoWindow({
+                            content: "<a href='javascript:delete_congestion(\"" + place.id + "\");'>Delete congestion</a>"
+                        });
                         infowindow.open(map, marker);
                     });
 
@@ -195,76 +189,45 @@ function refresh_car()
                     place_object.setPosition( new google.maps.LatLng( place['lat'], place['lon'] ) );
                     place_object.processed = true;
                 }
-
-
-
-                var marker = new google.maps.Marker({
-                    position: new google.maps.LatLng(place['lat'], place['lon']),
-                    map: map,
-                    icon: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png'
-                });
             });
 
             //remove old congested places
+            var deleted_congestion = [];
             $.each(congested_places, function( index, place ) {
-                if (!place.processed) {
-                    place.setMap(null);
-                    place[place.id] = null;
-                    delete congested_places[place.id];
+                if (place && !place.processed) {
+                    deleted_congestion.push(place.id);
                 }
             });
-
-
-            /*for (var i = 0; i < markers.length; i++) {
-                markers[i].setMap(null);
+            for (i = 0; i < deleted_congestion.length; i++) {
+                congested_places[deleted_congestion[i]].setMap(null);
+                congested_places[deleted_congestion[i]] = null;
+                delete congested_places[deleted_congestion[i]];
             }
 
-            // TODO: add new markers to the map
-            markers = []
-            $.each(data['vehicles_positions'], function( index, vehicle ) {
-                var marker = new google.maps.Marker({
-                    position: new google.maps.LatLng(vehicle['lat'], vehicle['lon']),
-                    map: map
-                });
-
-                markers.push(marker);
-            });
-
-            $.each(data['congested_places'], function( index, place ) {
-                var marker = new google.maps.Marker({
-                    position: new google.maps.LatLng(place['lat'], place['lon']),
-                    map: map,
-                    icon: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png'
-                });
-
-                markers.push(marker);
-            });
-            //refresh_car();*/
         },
         error: function (xhr, ajaxOptions, thrownError)
         {
             console.log(xhr);
             console.log(ajaxOptions);
             console.log(thrownError);
-            //refresh_car()
         }
     });
 }
 
-function delete_congestion(congestion_id) {
+function delete_congestion(congestion_id)
+{
     $.ajax({
         url: server + "delete_congestion/" + congestion_id,
         cache: false,
         dataType: "json",
         success: function(data)
         {
-            console.log(data);
-            /*if (data['edges'].length > 0)
-                var marker = new google.maps.Marker({
-                    position: new google.maps.LatLng(data['lat_lon']['lat'], data['lat_lon']['lon']),
-                    map: map,
-                    icon: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
-                });*/
+            if (infowindow) {
+                infowindow.close();
+            }
+            congested_places[congestion_id].setMap(null);
+            congested_places[congestion_id] = null;
+            delete congested_places[congestion_id];
         },
         error: function (xhr, ajaxOptions, thrownError)
         {
@@ -394,11 +357,19 @@ function display_place()
 
 }
 
-$(document).ready(function() {
-    setInterval(function () {
-        if (is_running) {
-            refresh_car();
-        }
+function add_congestion(lat, lon)
+{
+    $.ajax({
+            url: server + "congest_edge/" + lat.toString() + '/' + lon.toString(),
+            cache: false,
+            dataType: "json",
+            success: function(data)
+            {
+                infowindow.close();
+            }
+        });
+}
 
-    }, 1000);
-});
+
+google.maps.event.addDomListener(window, 'load', initialize);
+

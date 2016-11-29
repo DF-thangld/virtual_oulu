@@ -67,6 +67,9 @@ def get_vehicle_position(vehicle_id):
     
 def get_vehicle_angle(vehicle_id):
     return traci.vehicle.getAngle(vehicle_id)
+
+def get_vehicle_speed(vehicle_id):
+    return traci.vehicle.getSpeed(vehicle_id)
         
 def set_vehicle_speed(vehicle_id, speed):
     traci.vehicle.setSpeed(vehicle_id, speed)
