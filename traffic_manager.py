@@ -1458,7 +1458,6 @@ class TrafficManager(threading.Thread):
                         congested_place['vehicles'][vehicle['vehicle_id']] = {'id': vehicle['vehicle_id'], 'speed': vehicle['speed']}
                         self.traci_action_queue.append({'action': 'STOP_VEHICLE', 'parameter': {'vehicle_id': vehicle['vehicle_id']}})
 
-
     def control_people(self):
 
         conn = sqlite3.connect(config.DATABASE_FILE)
@@ -1536,7 +1535,6 @@ class TrafficManager(threading.Thread):
 
         return congestion
 
-
     def remove_congestion(self, id):
         congestion_count = len(self.congested_places)
         for i in range(0, congestion_count):
@@ -1544,7 +1542,6 @@ class TrafficManager(threading.Thread):
                 #print(self.congested_places[i]['vehicles'])
                 # release vehicles obstructed by congestion
                 for vehicle in self.congested_places[i]['vehicles'].items():
-                    print(vehicle)
                     self.traci_action_queue.append({'action': 'CHANGE_SPEED', 'parameter': {'vehicle_id': vehicle[1]['id'], 'speed': vehicle[1]['speed']}})
 
                 # remove congestion from list
@@ -1553,6 +1550,26 @@ class TrafficManager(threading.Thread):
                     del self.congested_places[i]
                     return
                 #return Response(json.dumps({'success': True, 'congestion_id': id}), 200, mimetype='application/json')
+
+    def update_congestion(self, id, lat, lng):
+        (x, y) = self.from_latlon(float(lat), float(lng))
+        congestion_count = len(self.congested_places)
+        for i in range(0, congestion_count):
+            if self.congested_places[i]['id'] == id:
+                congestion = self.congested_places[i]
+                congested_vehicles = congestion['vehicles']
+                # update current position
+                congestion['x'] = x
+                congestion['y'] = y
+                congestion['lat'] = lat
+                congestion['lon'] = lng
+                congestion['vehicles'] = {}
+
+                # set congested cars free
+                for vehicle in congested_vehicles.items():
+                    self.traci_action_queue.append({'action': 'CHANGE_SPEED', 'parameter': {'vehicle_id': vehicle[1]['id'], 'speed': vehicle[1]['speed']}})
+
+                return
 
     def process_traci_action_queue(self):
         current_queue = None

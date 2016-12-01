@@ -76,7 +76,12 @@ if __name__ == "__main__":
     def congest_edge(lat, lon):
         congestion = traffic_manager.add_congestion(lat, lon)
         return Response(json.dumps({'success': True, 'id': congestion['id']}), 200, mimetype='application/json')
-    
+
+    @app.route('/update_congest/<congestion_id>/<lat>/<lng>')
+    def update_congest(congestion_id, lat, lng):
+        traffic_manager.update_congestion(congestion_id, lat, lng)
+        return Response(json.dumps({'success': True, 'id': congestion_id}), 200, mimetype='application/json')
+
     @app.route('/get_places')
     def get_places():
         conn = sqlite3.connect(config.DATABASE_FILE)
