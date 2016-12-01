@@ -159,11 +159,6 @@ function refresh_car()
                 var place_object = congested_places[place.id];
                 if (typeof(place_object) == 'undefined') //new congested place
                 {
-
-
-
-
-
                     var marker = new google.maps.Marker({
                         position: new google.maps.LatLng(place['lat'], place['lon']),
                         map: map,
@@ -365,7 +360,30 @@ function add_congestion(lat, lon)
             dataType: "json",
             success: function(data)
             {
-                infowindow.close();
+                if (infowindow) {
+                    infowindow.close();
+                }
+
+                var marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(lat, lon),
+                    map: map,
+                    optimized: false,
+                    icon: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png'
+                });
+
+                google.maps.event.addListener(marker, "click", function(event) {
+                    if (infowindow) {
+                        infowindow.close();
+                    }
+                    infowindow = new google.maps.InfoWindow({
+                        content: "<a href='javascript:delete_congestion(\"" + data.id + "\");'>Delete congestion</a>"
+                    });
+                    infowindow.open(map, marker);
+                });
+
+                marker.id = data.id;
+                marker.processed = true;
+                congested_places[data.id] = marker;
             }
         });
 }

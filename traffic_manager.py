@@ -1455,8 +1455,7 @@ class TrafficManager(threading.Thread):
                 if vehicle['vehicle_id'] not in congested_place['vehicles']:
                     distance = utility.measure_distance(vehicle['x'], vehicle['y'], congested_place['x'], congested_place['y'])
                     if distance <= config.DISTANCE_TO_STOP:
-                        print('vehicle stop')
-                        congested_place['vehicles'].append({'id': vehicle['vehicle_id'], 'speed': vehicle['speed']})
+                        congested_place['vehicles'][vehicle['vehicle_id']] = {'id': vehicle['vehicle_id'], 'speed': vehicle['speed']}
                         self.traci_action_queue.append({'action': 'STOP_VEHICLE', 'parameter': {'vehicle_id': vehicle['vehicle_id']}})
 
 
@@ -1529,21 +1528,24 @@ class TrafficManager(threading.Thread):
 
     def add_congestion(self, lat, lng):
         (x, y) = self.from_latlon(float(lat), float(lng))
+        congestion = {'id': utility.generate_random_string(20), 'x': x, 'y': y, 'lat': lat, 'lon': lng, 'vehicles': {}}
 
         lock = threading.RLock()
         with lock:
-            self.congested_places.append({'id': utility.generate_random_string(20), 'x': x, 'y': y, 'lat': lat, 'lon': lng, 'vehicles': []})
+            self.congested_places.append(congestion)
+
+        return congestion
 
 
     def remove_congestion(self, id):
         congestion_count = len(self.congested_places)
         for i in range(0, congestion_count):
             if self.congested_places[i]['id'] == id:
-                print(self.congested_places[i]['vehicles'])
+                #print(self.congested_places[i]['vehicles'])
                 # release vehicles obstructed by congestion
-                for vehicle in self.congested_places[i]['vehicles']:
+                for vehicle in self.congested_places[i]['vehicles'].items():
                     print(vehicle)
-                    self.traci_action_queue.append({'action': 'CHANGE_SPEED', 'parameter': {'vehicle_id': vehicle['id'], 'speed': vehicle['speed']}})
+                    self.traci_action_queue.append({'action': 'CHANGE_SPEED', 'parameter': {'vehicle_id': vehicle[1]['id'], 'speed': vehicle[1]['speed']}})
 
                 # remove congestion from list
                 lock = threading.RLock()

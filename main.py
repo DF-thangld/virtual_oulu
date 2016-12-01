@@ -74,8 +74,8 @@ if __name__ == "__main__":
 
     @app.route('/congest_edge/<lat>/<lon>')
     def congest_edge(lat, lon):
-        traffic_manager.add_congestion(lat, lon)
-        return Response(json.dumps({'success': True}), 200, mimetype='application/json')
+        congestion = traffic_manager.add_congestion(lat, lon)
+        return Response(json.dumps({'success': True, 'id': congestion['id']}), 200, mimetype='application/json')
     
     @app.route('/get_places')
     def get_places():
