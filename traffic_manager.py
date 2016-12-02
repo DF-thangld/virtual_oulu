@@ -17,18 +17,15 @@ from asq.initiators import query
 import xml.etree.ElementTree as ET
 import utm
 
-
-
 #import internal classes
 import utility
 from person import Person
 import config
 import traci_helper
 
-#import sumo dir
-tools = os.path.join(config.SUMO_DIR, 'tools')
+tools = os.path.join(os.getcwd(), 'sumo_tools')
 sys.path.append(tools)
-import traci  # @UnresolvedImport
+import traci as traci  # @UnresolvedImport
 
 #logging info
 import logging
@@ -74,11 +71,6 @@ class TrafficManager(threading.Thread):
             self.network_node_file = config.NETWORK_NODE_FILE
         else:
             self.network_node_file = network_node_file
-
-        if (sumo_dir is None):
-            self.sumo_dir = config.SUMO_DIR
-        else:
-            self.sumo_dir = sumo_dir
 
         if (sumo_network_file is None):
             self.sumo_network_file = config.SUMO_NETWORK_FILE

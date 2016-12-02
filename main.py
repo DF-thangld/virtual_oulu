@@ -49,5 +49,6 @@ def update_congest(congestion_id, lat, lng):
 def index():
     return render_template('index.html')
 
-traffic_manager.start()
-app.run(debug=False, port=5000, host='0.0.0.0', threaded=True)
+if __name__ == '__main__':
+    traffic_manager.start()
+    app.run(debug=False, host='0.0.0.0', port=5000)
