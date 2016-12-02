@@ -32,4 +32,4 @@ SERVER_URL = 'http://localhost:5000/'
 GOOGLE_KEY = 'AIzaSyB4O9doFyBaUVS1WjUgqbTBfIQ3K4IMhMA'
 
 # in case uwsgi cannot run sumo by itself
-RUN_SUMO = False
+RUN_SUMO = True

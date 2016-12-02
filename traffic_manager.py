@@ -1589,6 +1589,9 @@ class TrafficManager(threading.Thread):
         soonest_time = soonest_action['time']
         is_using_realtime = False
 
+        conn.commit()
+        conn.close()
+
         #create people controller and append people there
         '''for i in range(config.NUMBER_PEOPLE_CONTROLLERS):
             people_controller = PeopleController(self)
@@ -1679,5 +1682,4 @@ class TrafficManager(threading.Thread):
                 #time.sleep(float(duration)/float(1000))
 
         traci.close()
-        conn.commit()
-        conn.close()
+
