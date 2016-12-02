@@ -1601,14 +1601,15 @@ class TrafficManager(threading.Thread):
                 i = 0'''
 
         # actually run the simulation
-        current_dir = os.path.dirname(os.path.realpath('__file__'))
-        sumo_command = config.SUMO_APP_DIR + ' --step-length ' +str(config.TIME_PER_STEP) + ' --begin ' + str(soonest_time-20) + ' --end ' + str(soonest_time-10)
-        sumo_command += ' --configuration-file ' + current_dir + '/' + self.simulation_config_file
-        sumo_command += ' --remote-port ' + str(self.sumo_port)
-        p = Process(target=os.system, args=(sumo_command,))
-        p.start()
-        #wait 2 seconds to ensure traci is running
-        time.sleep(2)
+        if config.RUN_SUMO:
+            current_dir = os.path.dirname(os.path.realpath('__file__'))
+            sumo_command = config.SUMO_APP_DIR + ' --step-length ' +str(config.TIME_PER_STEP) + ' --begin ' + str(soonest_time-20) + ' --end ' + str(soonest_time-10)
+            sumo_command += ' --configuration-file ' + current_dir + '/' + self.simulation_config_file
+            sumo_command += ' --remote-port ' + str(self.sumo_port)
+            p = Process(target=os.system, args=(sumo_command,))
+            p.start()
+            #wait 2 seconds to ensure traci is running
+            time.sleep(2)
 
         # start SUMO controller and go to soonest action
         traci.init(self.sumo_port)
