@@ -6,7 +6,8 @@ import traci_helper
 from traffic_manager import TrafficManager
 from flask import Flask, render_template, Response, request
 import json
-import sqlite3
+import logging
+
 try:
     from flask_cors import CORS  # The typical way to import flask-cors
 except ImportError:

@@ -11,6 +11,7 @@ import shutil
 from multiprocessing import Process
 import time
 import datetime
+import json
 
 #import external libraries
 from asq.initiators import query
@@ -29,12 +30,13 @@ import traci as traci  # @UnresolvedImport
 
 #logging info
 import logging
-logger = logging.getLogger('myapp')
-hdlr = logging.FileHandler('myapp_1.log')
+logger = logging.getLogger('virtual_oulu')
+hdlr = logging.FileHandler('logs/virtual_oulu.log')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr) 
 logger.setLevel(logging.INFO)
+logger.info('start app')
 
 class TrafficManager(threading.Thread):
     '''
@@ -1403,6 +1405,7 @@ class TrafficManager(threading.Thread):
             if person.day_plan[1]['type'] == 'MOVING' and person.day_plan[1]['duration'] > -1:
                 if person.day_plan[1]['edges'] is not None:
                     try:
+                        logger.info('addition vehicle at ' + str(traci_helper.get_current_time()) + ':' + json.dumps(person.day_plan[1]))
                         traci_helper.add_vehicle(person.day_plan[1])
                     except:
                         logger.error(str(traci_helper.get_simulate_time()) + '-' + str(self.simulating_time) + ' - ' + str(person.id) + ' - ' + str(person.day_plan[1]['action_id']))
@@ -1470,9 +1473,10 @@ class TrafficManager(threading.Thread):
                     action_time = row_day_plans['time']
                     action = {'action_id': utility.generate_random_string(20),
                               'edges': row_day_plans['route'],
-                              'time': traci_helper.get_current_time()+1,
+                              'time': current_time + 100,
                               'vehicle': 'default_car'}
                     try:
+                        logger.info('add vehicle at ' + str(current_time) + ':' + json.dumps(action))
                         traci_helper.add_vehicle(action)
                     except:
                         pass
@@ -1513,7 +1517,7 @@ class TrafficManager(threading.Thread):
         remaining_people_count = len(self.people)
         if (remaining_people_count < config.TOTAL_PEOPLE):
             self.load_people(config.TOTAL_PEOPLE - remaining_people_count)
-            print('load people: ' + str(config.TOTAL_PEOPLE - remaining_people_count))
+            logger.info('load people: ' + str(config.TOTAL_PEOPLE - remaining_people_count))
         conn.commit()
         conn.close()
 
@@ -1570,6 +1574,7 @@ class TrafficManager(threading.Thread):
             current_queue = self.traci_action_queue
             self.traci_action_queue = []
         for action in current_queue:
+            logger.info(action['action'], json.dumps(action['parameter']))
             if action['action'] == 'CREATE_CONGESTION':
                 traci_helper.add_congestion(action['parameter']['edge_id'], action['parameter']['position'])
             elif action['action'] == 'STOP_VEHICLE':

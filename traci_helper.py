@@ -3,6 +3,7 @@ import config
 import utility
 tools = os.path.join(os.getcwd(), 'sumo_tools')
 sys.path.append(tools)
+import logging
 import traci as traci  # @UnresolvedImport
 import traci.constants as tc  # @UnresolvedImport
 import traci.route # @UnresolvedImport
@@ -16,7 +17,10 @@ def add_route(route_id, edges_text):
         edges_text: edges of the route in text format ('edge_1 edge_2 edge_3')
     '''
     edges = edges_text.split(' ')
-    traci.route.add(route_id, edges)
+    try:
+        traci.route.add(route_id, edges)
+    except Exception, err:
+        logging.error('%s - %s - %s', err.message, route_id, edges_text)
 
 def add_vehicle(action, route_added=False):
     '''
@@ -26,12 +30,13 @@ def add_vehicle(action, route_added=False):
     '''
     if not route_added:
         add_route(action['action_id'], action['edges'])
-    if 'departPos' not in action: 
+    if 'departPos' not in action:
         traci.vehicle.addFull(action['action_id'], action['action_id'], typeID=action['vehicle'], depart=str(action['time']))
     else:
         traci.vehicle.addFull(action['action_id'], action['action_id'], typeID=action['vehicle'], depart=str(action['time']), departPos=str(action['departPos']))
 
     traci.vehicle.subscribe(action['action_id'], (tc.VAR_ROAD_ID, tc.VAR_LANEPOSITION))
+
     
 def add_congestion(edge_id, position):
     id = 'BLOCKED_' + utility.generate_random_string(20)
