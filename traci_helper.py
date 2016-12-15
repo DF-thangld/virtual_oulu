@@ -30,6 +30,8 @@ def add_vehicle(action, route_added=False):
     '''
     if not route_added:
         add_route(action['action_id'], action['edges'])
+
+    #action['time'] *= 1000
     if 'departPos' not in action:
         traci.vehicle.addFull(action['action_id'], action['action_id'], typeID=action['vehicle'], depart=str(action['time']))
     else:
@@ -77,7 +79,10 @@ def get_vehicle_speed(vehicle_id):
     return traci.vehicle.getSpeed(vehicle_id)
         
 def set_vehicle_speed(vehicle_id, speed):
-    traci.vehicle.setSpeed(vehicle_id, speed)
+    try:
+        traci.vehicle.setSpeed(vehicle_id, speed)
+    except:
+        pass
 
 def stop(vehicle_id, edge_id):
     traci.vehicle.slowDown(vehicle_id, 0.0, 1)

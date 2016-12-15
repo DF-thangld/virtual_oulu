@@ -1405,7 +1405,7 @@ class TrafficManager(threading.Thread):
             if person.day_plan[1]['type'] == 'MOVING' and person.day_plan[1]['duration'] > -1:
                 if person.day_plan[1]['edges'] is not None:
                     try:
-                        logger.info('addition vehicle at ' + str(traci_helper.get_current_time()) + ':' + json.dumps(person.day_plan[1]))
+                        logger.info('addition vehicle at ' + str(traci_helper.get_current_time()) + ':' + str(person.day_plan[1]['time']))
                         traci_helper.add_vehicle(person.day_plan[1])
                     except:
                         logger.error(str(traci_helper.get_simulate_time()) + '-' + str(self.simulating_time) + ' - ' + str(person.id) + ' - ' + str(person.day_plan[1]['action_id']))
@@ -1459,11 +1459,10 @@ class TrafficManager(threading.Thread):
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
 
-        current_time = traci_helper.get_current_time()
-        current_day = traci_helper.get_current_day()
+        current_time = traci_helper.get_simulate_time()
         self.get_vehicles_position()
 
-        if (config.MINUMUM_VEHICLES > 0):
+        if config.MINUMUM_VEHICLES > 0:
             running_vehicles_count = len(self.vehicles_positions)
             if running_vehicles_count < config.MINUMUM_VEHICLES:
                 sql = "select * from day_plans where type='MOVING' and route is not null ORDER BY RANDOM() limit " + str(config.MINUMUM_VEHICLES - running_vehicles_count)
@@ -1473,13 +1472,14 @@ class TrafficManager(threading.Thread):
                     action_time = row_day_plans['time']
                     action = {'action_id': utility.generate_random_string(20),
                               'edges': row_day_plans['route'],
-                              'time': current_time + 100,
+                              'time': self.simulating_time/1000 + 10,
                               'vehicle': 'default_car'}
                     try:
-                        logger.info('add vehicle at ' + str(current_time) + ':' + json.dumps(action))
+                        logger.info('add vehicle at ' + str(self.simulating_time/1000) + ':' + str(self.simulating_time/1000 + 10))
                         traci_helper.add_vehicle(action)
                     except:
-                        pass
+                        e = sys.exc_info()[0]
+                        logger.error(e)
 
 
         for person in self.people:
@@ -1564,7 +1564,6 @@ class TrafficManager(threading.Thread):
                 # set congested cars free
                 for vehicle in congested_vehicles.items():
                     self.traci_action_queue.append({'action': 'CHANGE_SPEED', 'parameter': {'vehicle_id': vehicle[1]['id'], 'speed': vehicle[1]['speed']}})
-
                 return
 
     def process_traci_action_queue(self):
@@ -1574,7 +1573,6 @@ class TrafficManager(threading.Thread):
             current_queue = self.traci_action_queue
             self.traci_action_queue = []
         for action in current_queue:
-            logger.info(action['action'], json.dumps(action['parameter']))
             if action['action'] == 'CREATE_CONGESTION':
                 traci_helper.add_congestion(action['parameter']['edge_id'], action['parameter']['position'])
             elif action['action'] == 'STOP_VEHICLE':
@@ -1611,7 +1609,7 @@ class TrafficManager(threading.Thread):
         # actually run the simulation
         if config.RUN_SUMO:
             current_dir = os.path.dirname(os.path.realpath('__file__'))
-            sumo_command = config.SUMO_APP_DIR + ' --step-length ' +str(config.TIME_PER_STEP) + ' --begin ' + str(soonest_time-20) + ' --end ' + str(soonest_time-10)
+            sumo_command = config.SUMO_APP_DIR + ' --step-length ' +str(config.TIME_PER_STEP) + ' --begin ' + str(soonest_time-20) + ' --end ' + str(soonest_time+20)
             sumo_command += ' --configuration-file ' + current_dir + '/' + self.simulation_config_file
             sumo_command += ' --remote-port ' + str(self.sumo_port)
             p = Process(target=os.system, args=(sumo_command,))
@@ -1687,4 +1685,5 @@ class TrafficManager(threading.Thread):
                 #time.sleep(float(duration)/float(1000))
 
         traci.close()
+
 

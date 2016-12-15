@@ -4,4 +4,6 @@ flask-sqlalchemy
 asq
 pymysql
 https://pypi.python.org/packages/source/u/utm/utm-0.4.0.tar.gz#md5=613a1f0ac10372eff2f313cf24edfe2e
+Pyro4
 uwsgi
+

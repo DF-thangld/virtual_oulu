@@ -1,5 +1,4 @@
-from main import app, traffic_manager
+from web_interface import app
 
 if __name__ == "__main__":
-    traffic_manager.start()
     app.run()

@@ -8,7 +8,7 @@ SUMO_NETWORK_FILE = 'data/oulu.net.xml'
 SIMULATION_CONFIG_FILE = 'data/oulu.sumocfg'
 
 MAX_DISTANCE = 5
-DISTANCE_TO_STOP = 5
+DISTANCE_TO_STOP = 10
 DAY_STARTING_TIME = 0
 REFRESH_RATE = 1 #1 second in real world equal to 1 second in simulation
 MAX_REFRESH_RATE = 512
@@ -33,3 +33,5 @@ GOOGLE_KEY = 'AIzaSyB4O9doFyBaUVS1WjUgqbTBfIQ3K4IMhMA'
 
 # in case uwsgi cannot run sumo by itself
 RUN_SUMO = True
+SERVER_HOST = 'localhost'
+SERVER_PORT = 4557
