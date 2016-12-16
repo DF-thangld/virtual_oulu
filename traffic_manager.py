@@ -1662,8 +1662,11 @@ class TrafficManager(threading.Thread):
             if config.USE_REAL_TIME and current_time_in_second >= self.simulating_time/1000:
                 self.simulating_time += 60000
             elif config.USE_REAL_TIME and current_time_in_second < self.simulating_time/1000:
-                people_logger.info('real time at ' + str(current_time_in_second) + ' - ' + str(self.simulating_time/1000))
-                config.USE_REAL_TIME = False
+                current_time = datetime.datetime.now()
+                current_time_in_second = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
+                if current_time_in_second < self.simulating_time/1000:
+                    people_logger.info('real time at ' + str(current_time_in_second) + ' - ' + str(self.simulating_time/1000))
+                    config.USE_REAL_TIME = False
             self.simulating_time += duration
             traci.simulationStep(self.simulating_time)
 
