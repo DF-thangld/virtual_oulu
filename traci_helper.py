@@ -17,10 +17,7 @@ def add_route(route_id, edges_text):
         edges_text: edges of the route in text format ('edge_1 edge_2 edge_3')
     '''
     edges = edges_text.split(' ')
-    try:
-        traci.route.add(route_id, edges)
-    except Exception, err:
-        logging.error('%s - %s - %s', err.message, route_id, edges_text)
+    traci.route.add(route_id, edges)
 
 def add_vehicle(action, route_added=False):
     '''

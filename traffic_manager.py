@@ -23,20 +23,18 @@ import utility
 from person import Person
 import config
 import traci_helper
+from logging_detail import get_logger
 
 tools = os.path.join(os.getcwd(), 'sumo_tools')
 sys.path.append(tools)
 import traci as traci  # @UnresolvedImport
 
 #logging info
-import logging
-logger = logging.getLogger('virtual_oulu')
-hdlr = logging.FileHandler('logs/virtual_oulu.log')
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-hdlr.setFormatter(formatter)
-logger.addHandler(hdlr) 
-logger.setLevel(logging.INFO)
+logger = get_logger('virtual_oulu', 'logs/virtual_oulu.log')
 logger.info('start app')
+
+#log people action
+people_logger = get_logger('people_logger', 'logs/people_virtual_oulu.log')
 
 class TrafficManager(threading.Thread):
     '''
@@ -1398,23 +1396,6 @@ class TrafficManager(threading.Thread):
     def get_nearest_edges(self, lat, lon):
         pass
 
-    def prepare_next_action(self, person, current_time):
-        if len(person.day_plan) > 1:
-            if person.day_plan[1]['time'] == -1:
-                person.day_plan[1]['time'] = person.day_plan[0]['time'] + person.day_plan[0]['duration'] + 300
-            if person.day_plan[1]['type'] == 'MOVING' and person.day_plan[1]['duration'] > -1:
-                if person.day_plan[1]['edges'] is not None:
-                    try:
-                        logger.info('addition vehicle at ' + str(traci_helper.get_current_time()) + ':' + str(person.day_plan[1]['time']))
-                        traci_helper.add_vehicle(person.day_plan[1])
-                    except:
-                        logger.error(str(traci_helper.get_simulate_time()) + '-' + str(self.simulating_time) + ' - ' + str(person.id) + ' - ' + str(person.day_plan[1]['action_id']))
-                        person.day_plan[1]['edges'] = None
-                        person.day_plan[1]['duration'] = 30*60
-                else:
-                    person.day_plan[1]['duration'] = 30*60
-            person.day_plan.pop(0)
-
     def get_vehicles_position(self):
         self.vehicle_statuses = traci_helper.get_all_vehicles_statuses()
         vehicles_positions = []
@@ -1459,7 +1440,7 @@ class TrafficManager(threading.Thread):
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
 
-        current_time = traci_helper.get_simulate_time()
+        current_time = self.simulating_time/1000
         self.get_vehicles_position()
 
         if config.MINUMUM_VEHICLES > 0:
@@ -1475,7 +1456,7 @@ class TrafficManager(threading.Thread):
                               'time': self.simulating_time/1000 + 10,
                               'vehicle': 'default_car'}
                     try:
-                        logger.info('add vehicle at ' + str(self.simulating_time/1000) + ':' + str(self.simulating_time/1000 + 10))
+                        #logger.info('add vehicle at ' + str(current_time) + ':' + str(current_time + 10))
                         traci_helper.add_vehicle(action)
                     except:
                         e = sys.exc_info()[0]
@@ -1490,7 +1471,7 @@ class TrafficManager(threading.Thread):
 
                 #self.prepare_next_action(person, current_time)
                 self.people.remove(person)
-                print('remove person ' + person.id)
+                #people_logger.info('remove person ' + person.id + ', remaining: ' + str(len(self.people)))
             elif person.day_plan[0]['type'] == 'MOVING':
                 if person.day_plan[0]['edges'] is None:
                     person.day_plan[0]['duration'] = 30*60
@@ -1499,7 +1480,7 @@ class TrafficManager(threading.Thread):
                     #remove the action
                     self.prepare_next_action(person, current_time)
 
-                elif current_time > person.day_plan[0]['time']:
+                elif current_time + 10 > person.day_plan[0]['time']:
                     if person.day_plan[0]['action_id'] not in self.vehicle_statuses:
                         #update the action's finish time in template table
                         person.day_plan[0]['finish_time'] = current_time
@@ -1517,9 +1498,32 @@ class TrafficManager(threading.Thread):
         remaining_people_count = len(self.people)
         if (remaining_people_count < config.TOTAL_PEOPLE):
             self.load_people(config.TOTAL_PEOPLE - remaining_people_count)
-            logger.info('load people: ' + str(config.TOTAL_PEOPLE - remaining_people_count))
+            #people_logger.info('load people: ' + str(config.TOTAL_PEOPLE - remaining_people_count))
         conn.commit()
         conn.close()
+
+    def prepare_next_action(self, person, current_time):
+        if len(person.day_plan) > 1:
+            if person.day_plan[1]['time'] == -1:
+                person.day_plan[1]['time'] = person.day_plan[0]['time'] + person.day_plan[0]['duration'] + 300
+            if person.day_plan[1]['type'] == 'MOVING' and person.day_plan[1]['duration'] == -1:
+                if person.day_plan[1]['edges'] is not None:
+                    try:
+                        #logger.info('addition vehicle at ' + str(self.simulating_time) + ':' + str(person.day_plan[1]['time']))
+                        if person.day_plan[1]['time'] >= self.simulating_time/1000:
+                            traci_helper.add_vehicle(person.day_plan[1])
+                        else:
+                            person.day_plan[1]['edges'] = None
+                            person.day_plan[1]['duration'] = 30*60
+                    except:
+                        #logger.error(str(self.simulating_time) + '-' + str(self.simulating_time) + ' - ' + str(person.id) + ' - ' + str(person.day_plan[1]['action_id']))
+                        person.day_plan[1]['edges'] = None
+                        person.day_plan[1]['duration'] = 30*60
+                else:
+                    person.day_plan[1]['duration'] = 30*60
+        if len(person.day_plan) >= 1:
+            #people_logger.info('person ' + person.id + ' remove task ' + person.day_plan[0]['type'] + ' at ' + str(self.simulating_time/1000) + ', expected finish time: ' + str(person.day_plan[0]['finish_time']) + ', remaining task: ' + str(len(person.day_plan) - 1))
+            person.day_plan.pop(0)
 
     def add_congestion(self, lat, lng):
         (x, y) = self.from_latlon(float(lat), float(lng))
@@ -1578,7 +1582,7 @@ class TrafficManager(threading.Thread):
             elif action['action'] == 'STOP_VEHICLE':
                 traci_helper.set_vehicle_speed(action['parameter']['vehicle_id'], 0)
             elif action['action'] == 'CHANGE_SPEED':
-                print(action)
+                #print(action)
                 traci_helper.set_vehicle_speed(action['parameter']['vehicle_id'], action['parameter']['speed'])
 
     def run(self):
@@ -1625,6 +1629,7 @@ class TrafficManager(threading.Thread):
         if (config.USE_REAL_TIME):
             current_time = datetime.datetime.now()
             current_time_in_second = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
+            people_logger.info('current time: ' + str(current_time_in_second))
 
             traci.simulationStep((current_time_in_second - 4000) * 1000)
             self.current_step = current_time_in_second - 4000
@@ -1646,43 +1651,30 @@ class TrafficManager(threading.Thread):
         duration = 10
         refresh_rate = config.REFRESH_RATE
         while (True):
-
-            total_time = 0
             simulation_time = float(self.simulating_time)/1000
-            while total_time < 20:
-                if (config.USE_REAL_TIME):
-                    if (not is_using_realtime):
-                        current_time = datetime.datetime.now()
-                        current_time_in_second = current_time.hour*3600 + current_time.minute*60 + current_time.second
-                        if (self.simulating_time/1000 < current_time_in_second-3600):
-                            refresh_rate = config.MAX_REFRESH_RATE
-                        elif (self.simulating_time/1000 < current_time_in_second):
-                            refresh_rate = (float)((current_time_in_second - (float)(self.simulating_time/1000))/3600/2)*config.MAX_REFRESH_RATE
-                            if (refresh_rate > config.REFRESH_RATE and refresh_rate < 2*config.REFRESH_RATE):
-                                refresh_rate = 2*config.REFRESH_RATE
-                            elif (refresh_rate <= config.REFRESH_RATE):
-                                refresh_rate = config.REFRESH_RATE
-                                is_using_realtime = True
-                        else:
-                            refresh_rate = config.REFRESH_RATE
-                            is_using_realtime = True
 
-                start = time.time()
-                #time.sleep(1/config.REFRESH_RATE)
 
-                self.current_step += 1
-                self.simulating_time += duration
-                traci.simulationStep(self.simulating_time)
+            start = time.time()
+            #time.sleep(1/config.REFRESH_RATE)
 
-                self.process_traci_action_queue()
+            self.current_step += 1
+            #self.simulating_time += 10000
+            if config.USE_REAL_TIME and current_time_in_second >= self.simulating_time/1000:
+                self.simulating_time += 60000
+            elif config.USE_REAL_TIME and current_time_in_second < self.simulating_time/1000:
+                people_logger.info('real time at ' + str(current_time_in_second) + ' - ' + str(self.simulating_time/1000))
+                config.USE_REAL_TIME = False
+            self.simulating_time += duration
+            traci.simulationStep(self.simulating_time)
 
-                self.control_people()
-                end = time.time()
-                duration = (end - start)*1000*refresh_rate
-                total_time += duration
-                #logger.error(str(duration))
-                #print(duration, total_time)
-                #time.sleep(float(duration)/float(1000))
+            self.process_traci_action_queue()
+
+            self.control_people()
+            end = time.time()
+            duration = (end - start)*1000
+            #logger.error(str(duration))
+            #print(duration, total_time)
+            #time.sleep(float(duration)/float(1000))
 
         traci.close()
 
