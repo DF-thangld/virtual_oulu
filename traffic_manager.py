@@ -42,6 +42,7 @@ class TrafficManager(threading.Thread):
     1. Skip to the soonest action
     2. Create a class to control people (should run by different thread)
     '''
+    #old data version
     OFFSET_X = -414982.40
     OFFSET_Y = -7194168.66
 
@@ -227,24 +228,29 @@ class TrafficManager(threading.Thread):
             - Distance from the node to the "to" node of the edge
             - Distance from the node to the line
         '''
-        edge_tree = ET.parse(self.network_file)
-        edge_root = edge_tree.getroot()
+        conn = sqlite3.connect(self.database_file)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute('select * from oulu_edges')
+        edges = cur.fetchall()
 
-        node_tree = ET.parse(self.network_node_file)
-        node_root = node_tree.getroot()
         nearest_distance = 9999999999999999
         nearest_edge = None
-        for edge in edge_root.iter('edge'):
-            if self.non_car_lanes_count(edge) < int(edge.attrib['numLanes']):
+
+        for edge in edges:
+            if edge['numLanes'] > 0:
 
                 distance = 0
 
-                node_from = node_root.find("./node[@id='" + edge.attrib['from'] + "']")
-                node_to = node_root.find("./node[@id='" + edge.attrib['to'] + "']")
-                x1 = float(node_from.attrib['x'])
-                y1 = float(node_from.attrib['y'])
-                x2 = float(node_to.attrib['x'])
-                y2 = float(node_to.attrib['y'])
+                cur.execute('select * from oulu_nodes where id=?', (edge['from'],))
+                node_from = cur.fetchone()
+                cur.execute('select * from oulu_nodes where id=?', (edge['to'],))
+                node_to = cur.fetchone()
+
+                x1 = float(node_from['x'])
+                y1 = float(node_from['y'])
+                x2 = float(node_to['x'])
+                y2 = float(node_to['y'])
 
                 distance = utility.calculate_distance(x, y, x1, y1, x2, y2)
 

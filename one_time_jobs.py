@@ -61,7 +61,7 @@ def import_lanes():
         edge_to = edge.get('to')
         edge_priority = edge.get('priority')
         edge_type = edge.get('type')
-        edge_numLanes = int(edge.get('numLanes'))
+        edge_numLanes = int(edge.get('numLanes')) - tm.non_car_lanes_count(edge)
         edge_speed = float(edge.get('speed'))
         edge_shape = edge.get('shape')
         edge_shape_lat_lon = ''
@@ -168,7 +168,7 @@ def create_edges_full_data_table():
     print('finish create_edges_full_data_table')
 
 #import_nodes()
-#import_lanes()
-create_edges_full_data_table()
+import_lanes()
+#create_edges_full_data_table()
 
 #print(split_line(13859.28, 0, 14110.65, 1535.92, 5))
