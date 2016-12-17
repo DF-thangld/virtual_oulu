@@ -239,7 +239,7 @@ function refresh_car()
         success: function(data)
         {
             $('#current_time').html('Simulating time: ' + format_time(data['time']/1000));
-
+            $('#more-info').html('Number of running vehicle(s): ' + data['vehicles_positions'].length.toString());
             $.each(vehicles, function( index, vehicle ) {
                 if (vehicle) {
                     vehicle.processed = false;

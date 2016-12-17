@@ -8,7 +8,7 @@ SUMO_NETWORK_FILE = 'data/oulu.net.xml'
 SIMULATION_CONFIG_FILE = 'data/oulu.sumocfg'
 
 MAX_DISTANCE = 5
-DISTANCE_TO_STOP = 10
+DISTANCE_TO_STOP = 15
 DAY_STARTING_TIME = 0
 REFRESH_RATE = 1 #1 second in real world equal to 1 second in simulation
 MAX_REFRESH_RATE = 512
@@ -21,14 +21,14 @@ SUMO_PORT = 9952
 PEOPLE_COUNT = 100000
 DEFAULT_MOVING_TIME = 1800 # assume that moving time take half an hour
 
-USE_REAL_TIME = True
+USE_REAL_TIME = False
 MINUMUM_VEHICLES = 0
 TIME_START = 8*3600
 ALWAYS_RELOAD_PEOPLE = False
 DELETE_OLD_DATA = False
 TOTAL_PEOPLE = 10000
 
-SERVER_URL = 'http://localhost:5000/'
+SERVER_URL = 'http://localhost:5001/'
 GOOGLE_KEY = 'AIzaSyB4O9doFyBaUVS1WjUgqbTBfIQ3K4IMhMA'
 
 # in case uwsgi cannot run sumo by itself

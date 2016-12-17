@@ -60,6 +60,6 @@ def parallel_function():
     process.update_nearest_edge()
 
 if __name__ == '__main__':
-    for i in range(0, 3):
+    for i in range(0, 5):
         p = Process(target=parallel_function)
         p.start()
