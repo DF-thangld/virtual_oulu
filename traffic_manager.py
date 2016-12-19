@@ -46,7 +46,7 @@ class TrafficManager(threading.Thread):
     OFFSET_X = -414982.40
     OFFSET_Y = -7194168.66
 
-    def __init__(self, database_file=None, network_file=None, network_node_file=None, sumo_network_file=None, simulation_config_file=None, sumo_dir=None):
+    def __init__(self, database_file=None, network_file=None, network_node_file=None, sumo_network_file=None, simulation_config_file=None):
         super(TrafficManager, self).__init__()
 
         # private variables definition
@@ -1548,7 +1548,7 @@ class TrafficManager(threading.Thread):
                 #print(self.congested_places[i]['vehicles'])
                 # release vehicles obstructed by congestion
                 for vehicle in self.congested_places[i]['vehicles'].items():
-                    self.traci_action_queue.append({'action': 'CHANGE_SPEED', 'parameter': {'vehicle_id': vehicle[1]['id'], 'speed': vehicle[1]['speed']}})
+                    self.traci_action_queue.append({'action': 'CHANGE_SPEED', 'parameter': {'vehicle_id': vehicle[1]['id'], 'speed': 1000}})
 
                 # remove congestion from list
                 lock = threading.RLock()
@@ -1622,8 +1622,8 @@ class TrafficManager(threading.Thread):
             sumo_command = config.SUMO_APP_DIR + ' --step-length ' +str(config.TIME_PER_STEP) + ' --begin ' + str(soonest_time-20) + ' --end ' + str(soonest_time+20)
             sumo_command += ' --configuration-file ' + current_dir + '/' + self.simulation_config_file
             sumo_command += ' --remote-port ' + str(self.sumo_port)
-            p = Process(target=os.system, args=(sumo_command,))
-            p.start()
+            self.sumo_process = Process(target=os.system, args=(sumo_command,))
+            self.sumo_process.start()
             #wait 2 seconds to ensure traci is running
             time.sleep(2)
 
@@ -1637,9 +1637,9 @@ class TrafficManager(threading.Thread):
             current_time_in_second = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
             people_logger.info('current time: ' + str(current_time_in_second))
 
-            traci.simulationStep((current_time_in_second - 4000) * 1000)
-            self.current_step = current_time_in_second - 4000
-            self.simulating_time = (current_time_in_second - 4000) * 1000
+            traci.simulationStep((current_time_in_second - 2000) * 1000)
+            self.current_step = current_time_in_second - 2000
+            self.simulating_time = (current_time_in_second - 2000) * 1000
 
         elif soonest_time < config.TIME_START:
             traci.simulationStep((soonest_time-5)*1000)
@@ -1658,33 +1658,36 @@ class TrafficManager(threading.Thread):
         refresh_rate = config.REFRESH_RATE
         while (True):
             simulation_time = float(self.simulating_time)/1000
-
-
             start = time.time()
             #time.sleep(1/config.REFRESH_RATE)
 
             self.current_step += 1
-            #self.simulating_time += 10000
-            if config.USE_REAL_TIME and current_time_in_second >= self.simulating_time/1000:
+
+            if config.USE_REAL_TIME and current_time_in_second >= simulation_time:
                 self.simulating_time += 60000
-            elif config.USE_REAL_TIME and current_time_in_second < self.simulating_time/1000:
+            elif config.USE_REAL_TIME and current_time_in_second < simulation_time:
                 current_time = datetime.datetime.now()
                 current_time_in_second = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
-                if current_time_in_second < self.simulating_time/1000:
-                    people_logger.info('real time at ' + str(current_time_in_second) + ' - ' + str(self.simulating_time/1000))
+                if current_time_in_second < simulation_time:
+                    people_logger.info('real time at ' + str(current_time_in_second) + ' - ' + str(simulation_time))
                     config.USE_REAL_TIME = False
-            self.simulating_time += duration
-            traci.simulationStep(self.simulating_time)
 
-            self.process_traci_action_queue()
+            self.simulating_time += duration
+            #self.simulating_time += 3600000
 
             self.control_people()
+            self.process_traci_action_queue()
+            traci.simulationStep(self.simulating_time)
+
             end = time.time()
             duration = (end - start)*1000
-            #logger.error(str(duration))
-            #print(duration, total_time)
-            #time.sleep(float(duration)/float(1000))
 
+            #restart the simulation on day 20 at 4AM
+            if simulation_time > 1742400:
+                break
         traci.close()
 
-
+        #run again
+        self.sumo_process.terminate()
+        self.__init__(self.database_file, self.network_file, self.network_node_file, self.sumo_network_file, self.simulation_config_file)
+        self.run()
