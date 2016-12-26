@@ -23,12 +23,12 @@
 
 <tlLogics version="0.13" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tllogic_file.xsd">
     <tlLogic id="1017908372" type="static" programID="0" offset="0">
-        <phase duration="31" state="rrrGGggGGGg"/>
-        <phase duration="9" state="rrryyggyyyg"/>
-        <phase duration="6" state="rrrrrGGrrrG"/>
-        <phase duration="9" state="rrrrryyrrry"/>
-        <phase duration="31" state="GGGrrrrrrrr"/>
-        <phase duration="9" state="yyyrrrrrrrr"/>
+        <phase duration="17" state="rrrGGggGGGg"/>
+        <phase duration="6" state="rrryyggyyyg"/>
+        <phase duration="4" state="rrrrrGGrrrG"/>
+        <phase duration="6" state="rrrrryyrrry"/>
+        <phase duration="17" state="GGGrrrrrrrr"/>
+        <phase duration="6" state="yyyrrrrrrrr"/>
     </tlLogic>
     <tlLogic id="1017908418" type="static" programID="0" offset="0">
         <phase duration="31" state="GGgrrrrGgg"/>
@@ -435,10 +435,10 @@
         <phase duration="5" state="rrryyyyrrr"/>
     </tlLogic>
     <tlLogic id="206180326" type="static" programID="0" offset="0">
-        <phase duration="31" state="GGGrrG"/>
-        <phase duration="7" state="yyyrry"/>
-        <phase duration="31" state="rrrGGG"/>
-        <phase duration="7" state="rrryyy"/>
+        <phase duration="17" state="GGGrrG"/>
+        <phase duration="5" state="yyyrry"/>
+        <phase duration="17" state="rrrGGG"/>
+        <phase duration="5" state="rrryyy"/>
     </tlLogic>
     <tlLogic id="206347206" type="static" programID="0" offset="0">
         <phase duration="31" state="GggGGGgrrr"/>

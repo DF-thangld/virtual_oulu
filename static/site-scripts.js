@@ -164,6 +164,49 @@ function display_place()
     map.panTo(new google.maps.LatLng(place['lat'], place['lon']));
 
 }
+
+function display_traffic_lights()
+{
+    var results = [];
+    $.ajax({
+        url: server + "get_traffic_lights",
+        cache: false,
+        dataType: "json",
+        success: function(data)
+        {
+            console.log(data);
+            $.each(data, function( index, traffic_light ) {
+                var marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(traffic_light['lat'], traffic_light['lon']),
+                    map: map,
+                    optimized: false,
+                    draggable:true,
+                    icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                });
+
+                google.maps.event.addListener(marker, "click", function(event) {
+                    if (infowindow) {
+                        infowindow.close();
+                    }
+                    infowindow = new google.maps.InfoWindow({
+                        content: "Traffic light ID: " + traffic_light['tl'] + "<br/>Node ID: " + traffic_light['node_id']
+                    });
+                    infowindow.open(map, marker);
+                });
+
+            });
+
+
+
+        },
+        error: function (xhr, ajaxOptions, thrownError)
+        {
+            console.log(xhr);
+            console.log(ajaxOptions);
+            console.log(thrownError);
+        }
+    });
+}
 /* obsolete functions, not in use anymore */
 
 function initialize() {

@@ -32,6 +32,10 @@ class VirtualOuluServer(object):
         self.traffic_manager.update_congestion(congestion_id, lat, lng)
         return congestion_id
 
+    def remove_vehicle(self, vehicle_id):
+        self.traffic_manager.remove_vehicle(vehicle_id)
+        return vehicle_id
+
 if __name__ == '__main__':
     print('init server')
     server = VirtualOuluServer()

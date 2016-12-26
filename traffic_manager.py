@@ -1576,6 +1576,9 @@ class TrafficManager(threading.Thread):
                     self.traci_action_queue.append({'action': 'CHANGE_SPEED', 'parameter': {'vehicle_id': vehicle[1]['id'], 'speed': vehicle[1]['speed']}})
                 return
 
+    def remove_vehicle(self, vehicle_id):
+        traci_helper.remove_vehicle(vehicle_id)
+
     def process_traci_action_queue(self):
         current_queue = None
         lock = threading.RLock()
@@ -1680,7 +1683,7 @@ class TrafficManager(threading.Thread):
             traci.simulationStep(self.simulating_time)
 
             end = time.time()
-            duration = (end - start)*1000
+            duration = (end - start)*1000*config.REFRESH_RATE
 
             #restart the simulation on day 20 at 4AM
             if simulation_time > 1742400:

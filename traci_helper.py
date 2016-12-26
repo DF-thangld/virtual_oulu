@@ -36,6 +36,8 @@ def add_vehicle(action, route_added=False):
 
     traci.vehicle.subscribe(action['action_id'], (tc.VAR_ROAD_ID, tc.VAR_LANEPOSITION))
 
+def remove_vehicle(vehicle_id):
+    traci.vehicle.remove(vehicle_id)
     
 def add_congestion(edge_id, position):
     id = 'BLOCKED_' + utility.generate_random_string(20)

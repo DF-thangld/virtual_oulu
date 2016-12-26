@@ -48,6 +48,63 @@ def update_congest(congestion_id, lat, lng):
 
     return Response(json.dumps({'success': True, 'id': congestion_id}), 200, mimetype='application/json')
 
+@app.route('/delete_vehicle/<vehicle_id>')
+def delete_vehicle(vehicle_id):
+    server = Pyro4.Proxy('PYRO:virtual_oulu@' + config.SERVER_HOST + ':' + str(config.SERVER_PORT))
+    server.delete_vehicle(vehicle_id)
+
+    return Response(json.dumps({'success': True, 'vehicle_id': vehicle_id}), 202, mimetype='application/json')
+
+@app.route('/get_traffic_lights')
+def get_traffic_lights():
+    import xml.etree.ElementTree as ET
+    import sqlite3
+    import config
+
+    tree = ET.parse('data/plain_network/oulu.tll.xml')
+    root = tree.getroot()
+    results = []
+    conn = sqlite3.connect(config.DATABASE_FILE)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    for connection in root.iter('connection'):
+        from_edge = connection.get('from')
+        to_edge = connection.get('to')
+        traffic_light_id = connection.get('tl')
+
+        def get_nodes(edge_id, database_cursor):
+            sql = 'select * from oulu_edges where id=?'
+            database_cursor.execute(sql, (edge_id,))
+            row = database_cursor.fetchone()
+            if row is not None:
+                return [row['from'], row['to']]
+            return None
+        def get_node_info (node_id, database_cursor):
+            sql = 'select * from oulu_nodes where id=?'
+            database_cursor.execute(sql, (node_id,))
+            row = database_cursor.fetchone()
+            if row is not None:
+                return {'id': row['id'], 'x': row['x'], 'y': row['y'], 'lat': row['lat'], 'lon': row['lon']}
+            return None
+
+        from_nodes = get_nodes(from_edge, cur)
+        to_nodes = get_nodes(to_edge, cur)
+
+        node = None
+        if from_nodes[0] == to_nodes[0] or from_nodes[0] == to_nodes[1]:
+            node = from_nodes[0]
+        elif from_nodes[1] == to_nodes[0] or from_nodes[1] == to_nodes[1]:
+            node = from_nodes[1]
+        if node is not None:
+            node_info = get_node_info(node, cur)
+            if node_info is not None:
+                results.append({'node_id': node_info['id'],
+                                'lat': node_info['lat'],
+                                'lon': node_info['lon'],
+                                'tl': traffic_light_id})
+
+    return Response(json.dumps(results), 200, mimetype='application/json')
+
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5001)
+    app.run(host='0.0.0.0', port=5001, debug=True)
 
